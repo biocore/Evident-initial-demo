@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>E-vident</title>
+    <link rel="shortcut icon" href="favicon.ico" />
+	<link rel="stylesheet" type="text/css" href="css/jquery-ui2.css">
+	<link rel="stylesheet" type="text/css" href="css/e-vident.css">
+	<link rel="stylesheet" type="text/css" href="css/spectrum.css">
+    <script type="text/javascript" src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.17.custom.min.js"></script>
+<script src="js/spectrum.js"></script>
+<script src="js/prettify.js"></script>
+<script type="text/javascript" src="js/e-vident.js"></script>
+<script>
+     if ($.browser.webkit && !!window.chrome) {
+         /*
+         version = $.browser.version
+         if (version.split(".")[0]<537) {
+             alert("Evident only works correctly on Chrome >= to 4.0 and you are using: " + version + ". If ");
+         }
+         */
+     } else {
+         alert("Evident only works correctly on Chrome. DO NOT USE SAFARI.")
+     }
+  </script>
+</head>
+
+<body onload="load()">
+	<div class="header clearfix">
+        <a href="."><img class="header" src="img/logo.png" alt="E.vident"/></a>
+	</div>
+	<div class="wrapper clearfix">
+		<div class="left clearfix">
+			<p class="ui-state-default ui-corner-all ui-helper-clearfix" style="padding:4px; margin:0px;">
+		Optimize Your Study
+			</p>
+			<div class="opswrapper">
+				<div class="ui-widget">
+					<p id="studycombop">
+					<label>Select a Study: </label>
+					<br>
+					<select id="studycombobox" onchange="studyChanged()">
+					</select>
+					</p>
+				</div>
+				<label for="sequences" class="sliderlabel">Sequences per Sample</label>
+				<label id="sequences" class="slidervalue"></label>
+				<div id="sequenceslider" class="slider-range-max"></div>
+				
+				<label for="subjects" class="sliderlabel">Number of Subjects</label>
+					<label id="subjects" class="slidervalue" ></label>
+				<div id="subjectslider" class="slider-range-max"></div>
+				
+				<label for="samples" class="sliderlabel">Samples per Subject</label>
+				<label id="samples" class="slidervalue"></label>
+				<div id="sampleslider" class="slider-range-max"></div>
+				
+				<label for="iterations" class="sliderlabel">Number of Iterations</label>
+				<label id="iterations" class="slidervalue"></label>
+				<div id="iterationslider" class="slider-range-max"></div>
+				
+				<label>Valid Metadata Columns:</label>
+				<div id="columns"></div>
+			</div>
+			<p class="ui-state-default ui-corner-all ui-helper-clearfix" style="padding:4px; margin:0px;">
+		Visualizations
+			</p>
+			
+			<div class="opswrapper" id="opswrapper">
+				<ul class="checkboxes">
+					<form name="visualizations">
+					<li><input class="checkbox" tag="checkbox" value="Demo" name="demo" type="checkbox" onclick="toggleSliders()">Demo</input></li>
+					<li><input class="checkbox" tag="checkbox" value="PCoA" name="pcoa" type="checkbox" checked="yes">PCoA</input></li>
+					<li><input class="checkbox" tag="checkbox" value="Alpha Diversity (stddev)" name="alpha_stddev" type="checkbox">Alpha Diversity (stddev)</input></li>
+					<li><input class="checkbox" tag="checkbox" value="Alpha Diversity (stderr)" name="alpha_stderr" type="checkbox">Alpha Diversity (stderr)</input></li>
+					</form>
+				</ul>
+			</div>
+			<input id="optimize" class="optimize" type="submit" value="Run" style="">
+		</div>
+		
+	   	<div class="right clearfix">
+	   	    <div id="accordion">
+    	   	    <h3><a href="#">about</a></h3>
+    	   	    <div class="accordionSection">
+    	   	        <div id="innerAccordion">
+    	   	            <h3><a href="#">overview</a></h3>
+    	   	            <div class="accordionSection">
+        	   	            <p>
+                	   	    <b class="big">The Evident Project</b><br><br>
+                	   	    E-vident allows direct effect size comparison within microbial 
+                	   	    community studies.<br><br>
+                	   	    A critical consideration in any clinical study is power analysis,
+                	   	     yet it has been difficult to perform such analyses for microbiome 
+                	   	     studies because the effect sizes of different disorders are unknown. 
+                	   	     Fortunately, several larger cohort studies, including but not 
+                	   	     limited to the <a href="http://www.hmpdacc.org/">Human Microbiome 
+                	   	     Project</a>, now allow us to identify 
+                	   	     effect sizes for differences among ages and populations, and 
+                	   	     differences associated with obesity, IBD, and other disorders. 
+                	   	     <br><br>These studies, together with studies characterizing normal 
+                	   	     variation between body sites within an individual and characterizing 
+                	   	     variation at the same body site over time, <b>allow us to ask how many 
+                	   	     subjects, timepoints, and sequences would be needed in order to find 
+                	   	     effects as large as those already observed for new disorders, 
+                	   	     for several different reported types of difference (alpha diversity, 
+                	   	     shifts in major taxa, locations on PCoA plots, rare/indicator taxa, 
+                	   	     supervised classification).</b> These power calculations, which will 
+                	   	     be critical as our knowledge of the role of the microbiome in a 
+                	   	     wide range of diseases expands, allow us to understand the 
+                	   	     circumstances under which we can tell healthy from diseased 
+                	   	     microbiomes. <br><br>The democratization of sequencing capacity makes 
+                	   	     these questions especially urgent, as leveraging existing large 
+                	   	     cohorts to fit effect sizes for much smaller studies will enable a 
+                	   	     much broader range of investigators to participate in 
+                	   	     microbiome-based biomarker discovery projects addressing critical 
+                	   	     public health issues.
+                	   	     </p>
+            	   	     </div>
+            	   	     <h5><a href="#">using evident</a></h5>
+                	   	 <div class="accordionSection">
+            	   	        <h3><a href="#">General Instructions</a></h3>
+                	   	    1. Pick a study & metadata column<br>
+                	   	    2. Pick the parameters<br>
+                	   	    3. Pick visualizations<br>
+                	   	    4. Visually see the effect size and make them E-vident!<br>
+                	   	    <br>
+                	   	 <div id="innerAccordion2">
+                	   	    <h3><a href="#">manipulating the PCoA plot</a></h3>
+                	   	    <div class="accordionSection2">
+                	   	        Rotate: mouse left click drag <br>
+                	   	        Pan: mouse right click drag<br>
+                	   	        Zoom: mouse scroll<br>
+                	   	        Locate a point on the plot: double click its name in the key
+                	   	    </div>
+                	   	 </div>
+                	   	 </div>
+                	   	 <h3><a href="#">available datasets</a></h3>
+                	   	 <div class="accordionSection">
+                	   	     <ul>
+                	   	     <li><a href="http://www.ncbi.nlm.nih.gov/pubmed/20231444">Fierer et. al Keyboard</a>
+                	   	     <p>
+                	   	     Fierer N, Lauber CL, Zhou N, McDonald D, Costello EK, Knight R. Forensic
+identification using skin bacterial communities. Proc Natl Acad Sci U S A. 2010
+Apr 6;107(14):6477-81. Epub 2010 Mar 15. PubMed PMID: 20231444; PubMed Central
+PMCID: PMC2852011.
+                	   	     </p>
+                	   	     </li>
+                	   	     <li><a href="http://www.ncbi.nlm.nih.gov/pubmed/19892944">Costello et. al Whole Body</a>
+                	   	     <p>
+                	   	     Costello EK, Lauber CL, Hamady M, Fierer N, Gordon JI, Knight R. Bacterial
+community variation in human body habitats across space and time. Science. 2009
+Dec 18;326(5960):1694-7. Epub 2009 Nov 5. PubMed PMID: 19892944.
+                             </p>
+                	   	     </li>
+                	   	     <li><a href="http://www.ncbi.nlm.nih.gov/pubmed/20445636">Rousk et. al Ph Soils</a>
+                	   	     <p>
+                	   	     Rousk J, Bååth E, Brookes PC, Lauber CL, Lozupone C, Caporaso JG, Knight R,
+Fierer N. Soil bacterial and fungal communities across a pH gradient in an arable
+soil. ISME J. 2010 Oct;4(10):1340-51. Epub 2010 May 6. PubMed PMID: 20445636.
+                	   	     </p>
+                	   	     </li>
+                	   	     <li><a href="http://www.hmpdacc.org/">HMP</a>
+                	   	     <p>
+                	   	     The Common Fund's Human Microbiome Project (HMP) aims to
+                	   	      characterize the microbial communities found at several 
+                	   	      different sites on the human body, including nasal 
+                	   	      passages, oral cavities, skin, gastrointestinal tract, 
+                	   	      and urogenital tract, and to analyze the role of these 
+                	   	      microbes in human health and disease.
+                	   	     </p>
+                	   	     </li>
+                	   	     </ul>
+            	   	     </div>
+            	   	</div>
+            	   	<br>
+        	   	     Evident has been developed in the <a href="http://chem.colorado.edu/knightgroup">Knight Lab</a> of Boulder Colorado.
+        	   	    
+    	   	    </div>
+    	   	</div>
+    	   	
+	   	    <div id="tabs" class="tabs-bottom">
+	   	        <ul>
+	   	            <li><a href="#tab1">Home</a></li>
+	   	        </ul>
+    	   	    <div id="tab1">
+    	   	    </div>
+    	   	</div>
+		</div>
+	</div>
+<footer>
+</footer>
+</body>
+</html>

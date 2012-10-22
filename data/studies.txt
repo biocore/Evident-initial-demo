@@ -1,0 +1,7 @@
+#StudyName	FileName	Individual_ID	Rarefied
+Fierer et. al Keyboard	keyboard	HOST_SUBJECT_ID	0
+Costello et. al WholeBody	wholebody	HOST_INDIVIDUAL	0
+#Rousk et. al PhSoils	phgradient	0
+Turnaugh et. al Twins	turnbaugh-twins	common_name	0
+HMP V13	hmp-v13	RSID	1000
+HMP V35	hmp-v35	RSID	1000
