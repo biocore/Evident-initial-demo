@@ -17,6 +17,7 @@ var ellipses;
 var plotEllipses = {};	//all ellipses that are plotted
 var ellipseOpacity = .2;
 var sphereOpacity = 1.0;
+var sphereScale;
 var sphere;         //generic sphere used for plots
 var particle;       //generic particle use for plots
 var scene;          //scene that holds the plot
@@ -529,6 +530,22 @@ function lopacitychange(ui) {
 	$('#labels').css('opacity', labelOpacity);
 }
 
+function sradiuschange(ui) {
+	document.getElementById('sphereradius').innerHTML = ui.value/5;
+	var scale = ui.value/5.0;
+	sphereScale = new THREE.Vector3(scale,scale,scale)
+	
+	for(var sid in plotSpheres)
+		plotSpheres[sid].scale = sphereScale;
+	
+	for(var sid in plotEllipses)
+	{
+		plotEllipses[sid].scale.x = scale*ellipses[sid]['width']/radius;
+	    plotEllipses[sid].scale.y = scale*ellipses[sid]['height']/radius;
+	    plotEllipses[sid].scale.z = scale*ellipses[sid]['length']/radius;
+	}
+}
+
 // function animSpeedChange(ui) {
 //     document.getElementById('animationspeed').innerHTML = ui.value + "fps";
 //     animationSpeed = ui.value
@@ -637,6 +654,20 @@ function setJqueryUi() {
 	});
 	document.getElementById('sphereopacity').innerHTML = $( "#sopacityslider" ).slider( "value")+"%";
 	
+	$( "#sradiusslider" ).slider({
+		range: "max",
+		min: 1,
+		max: 20,
+		value: 5,
+		slide: function( event, ui ) {
+		    sradiuschange(ui);
+		},
+		change: function( event, ui ) {
+		    sradiuschange(ui);
+		}
+	});
+	document.getElementById('sphereradius').innerHTML = $( "#sradiusslider" ).slider( "value")/5;
+	
 	$( "#lopacityslider" ).slider({
 		range: "max",
 		min: 0,
@@ -708,6 +739,7 @@ function setPoints() {
              plotIds.push(sid);
 	     }
     }
+	sphereScale = new THREE.Vector3(1,1,1);
 }
 
 function saveSVG(){
@@ -734,6 +766,10 @@ function SVGSaved(response){
 
 function changePointCount() {
     document.getElementById('pointCount').innerHTML = visiblePoints+'/'+plotIds.length+' points'
+}
+
+function changeSphereRadius() {
+	
 }
 
 $(document).ready(function() {
