@@ -112,7 +112,7 @@ def generate_alpha_rarefaction_plots_from_point_in_omega(chosen_samples, map_fil
 	alpha_rs = {}
 	alpha_filenames = []
 	for rb in rarefied_bioms:
-		key = 'alpha_rare_seqs_%s_iter_%s' % (str(rb[0]), str(rb[1]))
+		key = 'alpha_rare_%s_%s' % (str(rb[0]), str(rb[1]))
 		alpha_values = single_object_alpha(rb[2], metrics, tree_object)
 		alpha_rs[key] = (rb[0], rb[1], alpha_values.split('\n'))
 		alpha_filenames.append(key)
@@ -148,8 +148,10 @@ def generate_alpha_rarefaction_plots_from_point_in_omega(chosen_samples, map_fil
 		metrics_lines = []
 		for line in metrics_data[metric]:
 			# need the following form alpha_rare_seqs_20_iter_0\t20\t0
-			num_seqs, iter = line[0].split('seqs_')[1].split('_iter_')
-			stringified_line = line[0]+'\t'+num_seqs+'\t'+iter+'\t'
+			list_of_components = line[0].split('_')
+			iter = list_of_components.pop()
+			num_seqs = list_of_components.pop()
+			stringified_line = line[0]+'\t'#+num_seqs+'\t'+iter+'\t'
 
 			for list_element in line[1:]: # line[0] is the name, used above
 				stringified_line = stringified_line + str(list_element) + '\t'
