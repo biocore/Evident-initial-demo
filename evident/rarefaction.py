@@ -11,25 +11,23 @@ __maintainer__ = "William Van Treuren"
 __email__ = "wdwvt1@gmail.com"
 __status__ = "Development"
 
-from qiime.util import compute_seqs_per_library_stats, FunctionWithParams
-from qiime.rarefaction import RarefactionMaker, get_rare_data
-from biom.parse import parse_biom_table
-from biom.table import TableException
-from qiime.parse import (parse_matrix, parse_mapping_file, parse_rarefaction,
-	parse_mapping_file_to_dict, parse_newick)
-from qiime.collate_alpha import make_output_row
-from qiime.colors import process_colorby
-from qiime.make_rarefaction_plots import make_averages
-from mrp_refactor import make_averages
-from qiime.alpha_diversity import *
-from math import ceil
-
-import logging
-
-# prevents runtime error
+# prevents runtime error with matplotlib
 import os,tempfile
 os.environ['MPLCONFIGDIR'] = tempfile.mkdtemp()
 
+from math import ceil
+from qiime.alpha_diversity import *
+from biom.table import TableException
+from biom.parse import parse_biom_table
+from qiime.colors import process_colorby
+from qiime.collate_alpha import make_output_row
+from qiime.make_rarefaction_plots import make_averages
+from qiime.rarefaction import RarefactionMaker, get_rare_data
+from qiime.util import compute_seqs_per_library_stats, FunctionWithParams
+from qiime.parse import (parse_matrix, parse_mapping_file, parse_rarefaction,\
+						parse_mapping_file_to_dict, parse_newick)
+
+import logging
 
 def color_prefs(parsed_mf):
 	"""defines and calculates color prefrences for alpha_rarefaction plots"""
@@ -66,7 +64,7 @@ def single_object_alpha(biom_object, metrics, tree_object):
 				print 'something is wrong with conf file'
 		c = AlphaDiversityCalc(metric_f, is_phylogenetic)
 		calcs.append(c)
-	
+
 	all_calcs = AlphaDiversityCalcs(calcs)
 
 	result = all_calcs(data_path=biom_object, tree_path=tree_object,
@@ -107,8 +105,8 @@ def generate_alpha_rarefaction_plots_from_point_in_omega(chosen_samples, map_fil
 	min_depth = int(ceil(num_seqs_per_sam / num_reps))
 
 	rarefied_bioms = get_rarefactions(filtered_biom_table, min_depth, 
-	   num_seqs_per_sam, num_iters, num_reps)
-	
+		num_seqs_per_sam, num_iters, num_reps)
+
 	#convert metrics list to a string
 	metrics = ','.join(metrics_list)
 	alpha_rs = {}
@@ -118,14 +116,14 @@ def generate_alpha_rarefaction_plots_from_point_in_omega(chosen_samples, map_fil
 		alpha_values = single_object_alpha(rb[2], metrics, tree_object)
 		alpha_rs[key] = (rb[0], rb[1], alpha_values.split('\n'))
 		alpha_filenames.append(key)
-	
+
 	# use the rarefaction with the fewest seqs/sample as the refrence 
 	ref_rare = single_object_alpha(rarefied_bioms[0][2], metrics, 
 		tree_object=tree_object).split('\n')
 	all_metrics, all_samples, example_data = parse_matrix(ref_rare)
 
 	num_cols = len(all_samples)
-	
+
 	#REFACTOR
 	# metrics_data is dict:
 	# {'Shannon':['alpha_rare_seqs_20_iter_0','5.64545',...], 'Chao1':...} 
@@ -138,12 +136,12 @@ def generate_alpha_rarefaction_plots_from_point_in_omega(chosen_samples, map_fil
 			  make_output_row(f_metrics, metric, f_samples, 
 				f_data, fname,num_cols,all_samples))
 		metrics_data[metric] = metric_file_data
-	
+
 	# convert the metrics_data to one long string to fool parse_rarefaction.
 	# need to be careful; parse_rarefaction thinks that its the column header
 	# if it starts with a tab.	make column header start with a tab, and 
 	# everything else start without a tab. include sequences and iteration data
-	
+
 	# REFACTOR
 	metrics_data_strings = {}
 	for metric in metrics_data:
@@ -152,22 +150,22 @@ def generate_alpha_rarefaction_plots_from_point_in_omega(chosen_samples, map_fil
 			# need the following form alpha_rare_seqs_20_iter_0\t20\t0
 			num_seqs, iter = line[0].split('seqs_')[1].split('_iter_')
 			stringified_line = line[0]+'\t'+num_seqs+'\t'+iter+'\t'
-			
+
 			for list_element in line[1:]: # line[0] is the name, used above
 				stringified_line = stringified_line + str(list_element) + '\t'
 			# get rid of the final tab
 			stringified_line = stringified_line[:-1]
 			metrics_lines.append(stringified_line)
 		metrics_data_strings[metric] = metrics_lines
-	
+
 	# now we need to create the column header line	  
 	all_samples_string = '\t'.join(all_samples)
 	col_header = '\tsequences per sample\titeration\t'+all_samples_string +'\n'
 	# need the \n to match from file
-	
+
 	prefs, data, background_color, label_color, ball_scale, arrow_colors = \
 		color_prefs(map_file_tuple)
-	
+
 	# convert rarefaction strings/lists to proper format for make_average to use
 	rares = {}
 	for metric in all_metrics:
@@ -175,6 +173,7 @@ def generate_alpha_rarefaction_plots_from_point_in_omega(chosen_samples, map_fil
 		ds.append(col_header)
 		rares[metric] = parse_rarefaction(ds)
 		
-	html_output = make_averages(prefs, data, background_color, label_color, rares, 'dummy_fp', 75, 'png', None, False, std_type, output_type='memory')
-	
+	html_output = make_averages(prefs, data, background_color, label_color,\
+		rares, 'dummy_fp', 75, 'png', None, False, std_type, output_type='memory')
+
 	return html_output
