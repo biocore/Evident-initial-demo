@@ -143,12 +143,10 @@ def generate_pcoa_cloud_from_point_in_omega(mapping_file_tuple, biom_object,
 
     # convert the list of pcoa lines into ellipsoid coords
     ellipse_coords_by_sampleId, sampleId_to_coords  = get_pcoa_ellipsoid_coords(pcoa_list, axes, full_id_list)
-    # ellipse_coords_by_sampleId = get_pcoa_ellipsoid_coords(pcoa_list, axes, full_id_list)
-    
+        
     # check the ellipses are created correctly
     if type(ellipse_coords_by_sampleId) == type(''):
         raise ValueError, 'Could not create PCoA plot'
 
-    # webgl_string = make_pcoa_plot(ellipse_coords_by_sampleId, mapping_file_tuple)
     webgl_string = make_pcoa_plot(ellipse_coords_by_sampleId, mapping_file_tuple, sampleId_to_coords['variation explained'])
     return webgl_string

@@ -33,7 +33,7 @@ from time import time
 from evident.demo import demo
 from evident.subsampling import select_samples
 from evident.pcoa import generate_pcoa_cloud_from_point_in_omega, make_pcoa_webgl_string_from_files
-# from evident.rarefaction import generate_alpha_rarefaction_plots_from_point_in_omega
+from evident.rarefaction import generate_alpha_rarefaction_plots_from_point_in_omega
 
 from biom.parse import parse_biom_table
 from biom.exception import TableException
