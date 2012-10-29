@@ -56,7 +56,7 @@ data_color_hsv = [
 (0.272,0.89,0.44)
 ]
 
-def make_pcoa_plot(ellipses, mapping):
+def make_pcoa_plot(ellipses, mapping, pcoalabels):
     """ creates the webGL output to generate the PCoA plots
     
     Input:
@@ -119,6 +119,9 @@ def make_pcoa_plot(ellipses, mapping):
     result += 'var max_y = %f\n' % max_coords[1]
     result += 'var max_z = %f\n' % max_coords[2]
     
-    result += "max = %f" % (max([abs(max_coords).max(), abs(min_coords).max()])*1.15)
-    
+    result += "max = %f\n" % (max([abs(max_coords).max(), abs(min_coords).max()])*1.15)
+    # result += "var s = \"%s\"\n" %(pcoalabels)
+    result += "pc1 = %.0f\n" %(pcoalabels[0])
+    result += "pc2 = %.0f\n" %(pcoalabels[1])
+    result += "pc3 = %.0f\n" %(pcoalabels[2])
     return result
