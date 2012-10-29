@@ -104,7 +104,7 @@ start_time = time()
 if form_input['demo']!="True":
 	map_data, headers, comments = parse_mapping_file(open(mapping_fp, 'U'))
 	biom_table = parse_biom_table(open(biom_fp, 'U'))
-	
+
 	try:
 		# select only samples that meet ther criteria
 		chosen_samples, filtered_biom_table = select_samples(map_data, headers, biom_table, \
@@ -117,7 +117,7 @@ if form_input['demo']!="True":
 		raiseApacheError('<b>At least <u>three</u> data-points are needed: try changing the values of Subjects or Samples per Subject.</b>')
 
 	# get the non redundant columns of the mapping file
-	interesting_headers, interesting_data = filter_mapping_file(map_data, headers, chosen_samples) 
+	interesting_headers, interesting_data = filter_mapping_file(map_data, headers, chosen_samples)
 	mapping_file_tuple = (interesting_data, interesting_headers)
 
 logging.debug('Subsampling: %f', time()-start_time)
@@ -143,7 +143,7 @@ if form_input['viz']=='pcoa':
 	else:
 		map_data, map_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
 		pcoa_headers, points, eigvals, pct_var = parse_coords(open(pcoa_fp,'U'))
-		
+
 		webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, map_headers, map_data)
 
 	logging.debug('PCoA:	%f', time()-start_time)
@@ -159,25 +159,21 @@ if form_input['viz']=='pcoa':
 elif form_input['viz']=='alpha_stddev' or form_input['viz']=='alpha_stderr':
 	if form_input['study'] in ['hmp-v13','hmp-v35']:
 		raiseApacheError('Functionality not implemented for this study')
-		
+
 	if form_input['demo']!="True":
 		min_depth = 10
 		if form_input['sequences']==min_depth:
 			raiseApacheError('The min number of sequences for alpha diversity is 15, so you need to select at least this number')
 		html_string = generate_alpha_rarefaction_plots_from_point_in_omega(
-			chosen_samples=chosen_samples,
-			map_file_tuple=mapping_file_tuple,
-			filtered_biom_table=filtered_biom_table,
-			metrics_list=['observed_species','Chao1', 'PD_whole_tree'],
-			category=form_input['column'],
-			num_seqs_per_sam=form_input['sequences'],
-			num_iters=form_input['iterations'],
-			tree_object=tree_object,
-			std_type=form_input['viz'][6:])
+			mapping_file_tuple=mapping_file_tuple,
+			biom_object=filtered_biom_table,
+			metrics=['observed_species','Chao1', 'PD_whole_tree'],
+			sequences=form_input['sequences'],
+			iterations=form_input['iterations'],
+			tree_object=tree_object, std_type=form_input['viz'][6:])
 	else:
 		html_string = '\n'.join(open(alpha_fp,'U').readlines())
 
-		
 	req.write(html_string)
 elif form_input['viz']=='taxonomy' :
 	raiseApacheError('Functionality not implemented')
