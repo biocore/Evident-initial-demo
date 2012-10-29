@@ -139,6 +139,10 @@
 	z-index: 1;
 	}
 	
+	.axislabels {
+	    color: #fff;
+	}
+	
 	div#labelColorHolder {
 	    width: 100%;
 	}
