@@ -20,7 +20,7 @@ from evident import make_pcoa_plot
 from qiime.rarefaction import get_rare_data
 from qiime.principal_coordinates import pcoa
 from qiime.beta_diversity import single_object_beta
-from qiime.parse import parse_mapping_file, mapping_file_to_dict
+from qiime.parse import parse_mapping_file, mapping_file_to_dict, parse_coords
 
 def make_pcoa_webgl_string_from_files(pcoa_headers, points, map_headers, map_data):
     """make a WebGL representation of a pcoa plot with the provided data
@@ -87,15 +87,19 @@ def get_pcoa_ellipsoid_coords(sampled_pcoa_strings, number_of_axes, sampleIds):
     sampleId_to_coords = {}
     sampleId_center_and_axes = {}
     for pcoa_string in sampled_pcoa_strings:
-        for line in pcoa_string.split('\n'):
-            line = line.split('\t')
-            if line[0] in sampleIds:
-                if line[0] not in sampleId_to_coords.keys():
-                    sampleId_to_coords[line[0]] = {'coords':[[] for i in range(1,number_of_axes+1,1)]}
-                    sampleId_center_and_axes[line[0]] = { 'center':[], 'axes_radii':[] }
-                for axis in range(number_of_axes):
-                    sampleId_to_coords[line[0]]['coords'][axis].append(float(line[axis+1]))
-
+        coord_header, coords, eigvals, pct_var = parse_coords(pcoa_string.split('\n'))
+        if '% variation explained' not in sampleId_to_coords:
+            sampleId_to_coords['% variation explained'] = []
+        sampleId_to_coords['% variation explained'].append(pct_var[:number_of_axes])
+        
+        for sampleName, values in zip(coord_header, coords):
+            if sampleName not in sampleId_to_coords.keys():
+                sampleId_to_coords[sampleName] = {'coords':[[] for i in range(1,number_of_axes+1,1)]}
+                sampleId_center_and_axes[sampleName] = { 'center':[], 'axes_radii':[] }
+            for axis in range(number_of_axes):
+                sampleId_to_coords[sampleName]['coords'][axis].append(values[axis])
+    sampleId_to_coords['% variation explained'] = array(sampleId_to_coords['% variation explained']).mean(0)
+    
     for samId in sampleId_center_and_axes:
         for axis in range(number_of_axes):
             center = array(sampleId_to_coords[samId]['coords'][axis]).mean()
