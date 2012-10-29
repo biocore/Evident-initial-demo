@@ -15,6 +15,9 @@ var plotIds = [];		//IDs of all items that are plotted
 var plotSpheres = {};	//all spheres that are plotted
 var ellipses;
 var plotEllipses = {};	//all ellipses that are plotted
+var pc1;
+var pc2;
+var pc3;
 var ellipseOpacity = .2;
 var sphereOpacity = 1.0;
 var sphereScale;
@@ -880,12 +883,13 @@ $(document).ready(function() {
 	    createAxis(v(xstart, ystart, zstart), v(axisLength, ystart, zstart), 0xFF0000);
 	    createAxis(v(xstart, ystart, zstart), v(xstart, axisLength, zstart), 0x00FF00);
 	    createAxis(v(xstart, ystart, zstart), v(xstart, ystart, axisLength), 0x0000FF);
+	    
 	};
 		
 	  var axesLen = Math.max(max_x+Math.abs(min_x),max_y+Math.abs(min_y),max_z+Math.abs(min_z));	  
 	  debugaxis(axesLen, min_x, min_y, min_z);
 	  //debugaxis(axesLen, 0, 0, 0);
-	
+	  buildAxisLabels()
       // lights
       var light = new THREE.DirectionalLight( 0xffffff, 2 );
 	  light.position.set( 1, 1, 1 ).normalize();
@@ -938,7 +942,7 @@ $(document).ready(function() {
       renderer.sortObjects = false;
       main_plot.append( renderer.domElement );
 	
-	// build divs to hold labels and position them
+	// build divs to hold point labels and position them
 	var labelshtml = "";
 	       for(var i in plotIds) {
 	           var sid = plotIds[i];
@@ -951,7 +955,26 @@ $(document).ready(function() {
 	       }
 	       document.getElementById("labels").innerHTML = labelshtml;
    }
-   
+
+   function buildAxisLabels() {
+      //build axis labels
+      var axesLen = Math.max(max_x+Math.abs(min_x),max_y+Math.abs(min_y),max_z+Math.abs(min_z));
+      var axislabelhtml = "";
+      // var xcoords = toScreenXY(new THREE.Vector3(0, 0, 0),camera,$('#main_plot'));
+      var xcoords = toScreenXY(new THREE.Vector3(axesLen, min_y, min_z),camera,$('#main_plot'));
+      axislabelhtml += "<label id=\"pc1_label\" class=\"unselectable labels\" style=\"position:absolute; left:"+parseInt(xcoords['x'])+"px; top:"+parseInt(xcoords['y'])+"px;\">";
+      axislabelhtml += pc1+"%";
+      axislabelhtml += "</label>";
+	  var ycoords = toScreenXY(new THREE.Vector3(min_x, axesLen, min_z),camera,$('#main_plot'));
+      axislabelhtml += "<label id=\"pc2_label\" class=\"unselectable labels\" style=\"position:absolute; left:"+parseInt(ycoords['x'])+"px; top:"+parseInt(ycoords['y'])+"px;\">";
+      axislabelhtml += pc2+"%";
+      axislabelhtml += "</label>";
+	  var zcoords = toScreenXY(new THREE.Vector3(min_x, min_y, axesLen),camera,$('#main_plot'));
+      axislabelhtml += "<label id=\"pc3_label\" class=\"unselectable labels\" style=\"position:absolute; left:"+parseInt(zcoords['x'])+"px; top:"+parseInt(zcoords['y'])+"px;\">";
+      axislabelhtml += pc3+"%";
+      axislabelhtml += "</label>";
+      document.getElementById("axislabels").innerHTML = axislabelhtml;
+   }
 
    function animate() {
     // setTimeout( function() {
@@ -960,6 +983,7 @@ $(document).ready(function() {
 
     // }, 1000 / 30 );
     render();
+    buildAxisLabels();
 	// move labels when the plot is moved
 	if(document.plotoptions.elements[0].checked)
 	{
