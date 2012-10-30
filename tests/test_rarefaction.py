@@ -22,16 +22,16 @@ class TopLevelTests(TestCase):
         sample_ids = ['M9Thmr217.141049', 'M3Midl217.141103', \
             'M9Midr217.141060', 'M3Pinr217.141057']
         output = _format_rarefactions(metrics_data_a, sample_ids)
-        #self.assertEquals(output, expected_formated_dict_a)
+        self.assertEquals(output, expected_formated_dict_a)
         pass
 
 metrics_data_a = {\
 'PD_whole_tree': [\
-    ['alpha_rarefaction_381_0', 381, 0, '6.62714', '6.71907', '6.03955', '7.18497'],\
-    ['alpha_rarefaction_666_0', 666, 0, '7.41714', '7.44263', '6.26622', '9.85806'],\
-    ['alpha_rarefaction_951_0', 951, 0, '9.72276', '8.49664', '7.27135', '10.89548'],\
-    ['alpha_rarefaction_1236_0', 1236, 0, '9.43287', '9.88928', '7.68549', '11.97569'],\
-    ['alpha_rarefaction_1521_0', 1521, 0, '10.14783', '10.28997', '8.04553', '12.79367']\
+    ['alpha_rarefaction_381_0', 381, 0.0, '6.62714', '6.71907', '6.03955', '7.18497'],\
+    ['alpha_rarefaction_666_0', 666, 0.0, '7.41714', '7.44263', '6.26622', '9.85806'],\
+    ['alpha_rarefaction_951_0', 951, 0.0, '9.72276', '8.49664', '7.27135', '10.89548'],\
+    ['alpha_rarefaction_1236_0', 1236, 0.0, '9.43287', '9.88928', '7.68549', '11.97569'],\
+    ['alpha_rarefaction_1521_0', 1521, 0.0, '10.14783', '10.28997', '8.04553', '12.79367']\
 ],\
 'observed_species': [\
     ['alpha_rarefaction_381_0', 381, 0, '49.0', '45.0', '39.0', '66.0'],\
@@ -48,7 +48,7 @@ metrics_data_a = {\
     ['alpha_rarefaction_1521_0', 1521, 0, '121.166666667', '192.8125', '95.8333333333', '283.956521739']\
 ]}
 
-expected_formated_dict_a = {\
+expected_formated_dict_a={\
 'PD_whole_tree':\
     (['', 'sequences per sample', 'iteration', 'M9Thmr217.141049', 'M3Midl217.141103', 'M9Midr217.141060', 'M3Pinr217.141057'], [],\
     ['alpha_rarefaction_381_0', 'alpha_rarefaction_666_0', 'alpha_rarefaction_951_0', 'alpha_rarefaction_1236_0', 'alpha_rarefaction_1521_0'],\

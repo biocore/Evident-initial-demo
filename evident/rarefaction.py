@@ -82,8 +82,44 @@ def get_rarefactions(biom_object,min_depth,max_depth,num_reps,num_rare_depths):
 	return rarefactions
 
 def _format_rarefactions(rarefaction_data, samples):
-	""""""
+	"""utility to get rarefaction data into a make_averages compatible format
 
+	Inputs:
+	rarefaction_data: dictionary of alpha-div metrics and their values
+	samples: list of sample identifiers for each of the alpha-div calculations
+
+	Output:
+	output: qiime.make_rarefaction_plots.make_averages compatible rarefaction 
+	data
+	"""
+	output = {}
+	# each key is a metric, each value is a list of alpha diversity values
+	for key, value in rarefaction_data.iteritems():
+
+		# build the header of the table
+		_buffer = [['', 'sequences per sample', 'iteration']]
+		_buffer[0].extend(samples)
+		_buffer.append([])
+
+		# extract each of the rarefaction labels
+		_buffer.append([row[0] for row in value])
+
+		# all the rarefaction values must be formatted as floats
+		full_matrix = []
+		for row in value:
+			matrix_row = []
+			for element in row[1::]:
+				# some elements are strings and some elements are floats
+				try:
+					matrix_row.append(float(element))
+				except TypeError:
+					matrix_row.append(element)
+			full_matrix.append(matrix_row)
+		_buffer.append(full_matrix)
+
+		output[key] = tuple(_buffer)
+
+	return output
 
 def generate_alpha_rarefaction_plots_from_point_in_omega(mapping_file_tuple,
 														biom_object, metrics, 
