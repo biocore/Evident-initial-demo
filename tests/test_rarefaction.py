@@ -111,7 +111,7 @@ class TopLevelTests(TestCase):
     def test_generate_alpha_rarefaction_plots_from_point_in_omega(self):
         """check the HTML formatted string is correctly created"""
 
-        # each output string must be split in two pieces, one containing the
+        # each output string must be split in two pieces, one containing the 
         # data from the images and the other one containing the JavaScritp and
         # HTML code. Only the former will be checked as the format of the images
         # vary from machine to machine, so the images are assumed correct
@@ -131,19 +131,19 @@ class TopLevelTests(TestCase):
         self.assertEquals(out_html_string.split(separator_string)[1],\
             expected_html_string_b)
 
-        # standard error bars single iteration
-        out_html_string = generate_alpha_rarefaction_plots_from_point_in_omega(\
-            self.mapping_file_tuple, self.biom_object, self.metrics, 140, 1,\
-            self.tree_object, 'stderr')
-        self.assertEquals(out_html_string.split(separator_string)[1],\
-            expected_html_string_c)
-
         # standard error bars multiple iterations
         out_html_string = generate_alpha_rarefaction_plots_from_point_in_omega(\
             self.mapping_file_tuple, self.biom_object, self.metrics, 140, 3,\
             self.tree_object, 'stderr')
         self.assertEquals(out_html_string.split(separator_string)[1],\
             expected_html_string_d)
+
+        # standard error bars single iteration
+        out_html_string = generate_alpha_rarefaction_plots_from_point_in_omega(\
+            self.mapping_file_tuple, self.biom_object, self.metrics, 140, 1,\
+            self.tree_object, 'stderr')
+        self.assertEquals(out_html_string.split(separator_string)[1],\
+            expected_html_string_c)
 
 metrics_data_a = {\
 'PD_whole_tree': [\
