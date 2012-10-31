@@ -4,57 +4,68 @@ from __future__ import division
 
 __author__ = "William Van Treuren"
 __copyright__ = "Copyright 2012, Evident"
-__credits__ = ["William Van Treuren"]
+__credits__ = ["William Van Treuren", "Yoshiki Vazquez-Baeza"]
 __license__ = "GPL"
 __version__ = ".9-dev"
-__maintainer__ = "William Van Treuren"
+__maintainer__ = "Yoshiki Vazquez-Baeza"
 __email__ = "wdwvt1@gmail.com"
 __status__ = "Development"
 
-from qiime.util import compute_seqs_per_library_stats, FunctionWithParams
-from qiime.rarefaction import RarefactionMaker, get_rare_data
-from biom.parse import parse_biom_table
-from biom.table import TableException
-from qiime.parse import (parse_matrix, parse_mapping_file, parse_rarefaction,
-	parse_mapping_file_to_dict, parse_newick)
-from qiime.collate_alpha import make_output_row
-from qiime.colors import process_colorby
-from qiime.make_rarefaction_plots import make_averages
-from mrp_refactor import make_averages
-from qiime.alpha_diversity import *
-from math import ceil
-
-import logging
-
-# prevents runtime error
+# prevents runtime error with matplotlib, hence this statement must preceed
+# any interaction with that module to avoid unwanted results
 import os,tempfile
 os.environ['MPLCONFIGDIR'] = tempfile.mkdtemp()
 
+from math import ceil
+from qiime.alpha_diversity import *
+from qiime.colors import process_colorby
+from qiime.rarefaction import RarefactionMaker
+from qiime.collate_alpha import make_output_row
+from qiime.make_rarefaction_plots import make_averages
+from qiime.parse import parse_matrix, parse_rarefaction
 
-def color_prefs(parsed_mf):
-	"""defines and calculates color prefrences for alpha_rarefaction plots"""
+import logging
+
+def build_color_preferences(mapping_file_tuple):
+	"""defines and calculates color prefrences for alpha_rarefaction plots
+
+	Inputs:
+	mapping_file_tuple: parsed mapping file information i. e. (data, headers)
+
+	Outputs:
+	A list containing color_prefs, data, background_color, label_color for usage
+	with make_averages or any other qiime visualization module
+	"""
 	data = {}
-	mapping,headers = parsed_mf # mapping file is tuple, doesnt have comments
-	new_mapping=[headers]
-	new_mapping.extend(mapping)
-	data['map']=new_mapping
+
+	# format the mapping file for use with process_by_color
+	mapping_file_data, mapping_file_headers = mapping_file_tuple
+	formatted_mapping_file =[mapping_file_headers]
+	formatted_mapping_file.extend(mapping_file_data)
+	data['map']= formatted_mapping_file
+
 	background_color='black'
 	label_color='white'
-	ball_scale=1.0
-	arrow_colors={'line_color':'white', 'head_color':'red'}
-	color_prefs, data = process_colorby(colorby=None, data=data,
-		color_prefs=None)
-	return color_prefs, data, background_color, label_color, ball_scale, \
-		arrow_colors
+
+	# the colors will only be based on the data
+	color_prefs, data = process_colorby(None, data, None)
+
+	return color_prefs, data, background_color, label_color
 
 def single_object_alpha(biom_object, metrics, tree_object):
-	"""calculates alpha rarefaction values but does not write output.
-	this is a fileless implementation of single_file_alpha for use with 
-	evident."""
+	"""given a metric calculates alpha diversity of a biom object
 
-	metrics_list = metrics.split(',')
+	Inputs:
+	biom_object: biom formatted OTU table
+	metrics: list of alpha diversity metrics
+	tree_object: tree object for the phylogenetic metrics
+
+	Output:
+	calculations: tab delimitted string with the calculations for the object
+	"""
+
 	calcs = []
-	for metric in metrics_list:
+	for metric in metrics:
 		try:
 			metric_f = get_nonphylogenetic_metric(metric)
 			is_phylogenetic = False
@@ -66,115 +77,140 @@ def single_object_alpha(biom_object, metrics, tree_object):
 				print 'something is wrong with conf file'
 		c = AlphaDiversityCalc(metric_f, is_phylogenetic)
 		calcs.append(c)
-	
+
 	all_calcs = AlphaDiversityCalcs(calcs)
 
 	result = all_calcs(data_path=biom_object, tree_path=tree_object,
 		log_path=None)
 	return all_calcs.formatResult(result)
 
-def get_rarefactions(biom_object,min_depth,max_depth,num_reps,num_rare_depths):
-	"""rarify biom object and return rarefactions"""
-	# max_depth = num_seqs_per_sam due to earlier filtering
-	# num_reps = num_iters
-	rarefaction_step_size = int((max_depth - min_depth)/num_rare_depths)
-	rare_maker = RarefactionMaker(biom_object, min_depth,  max_depth, 
-		rarefaction_step_size, num_reps)
-	rarefactions = rare_maker.rarefy_to_list() 
+def get_rarefactions(biom_object, minimum, maximum, iterations, steps):
+	"""rarify biom object and return rarefactions
+
+	Inputs:
+	biom_object: object to rarefy
+	minimum: starting point for the rarefactions
+	maximum: ending point for the rarefactions
+	iterations: repetitions per rarefaction depth
+	steps: number of levels between minimum and maximum
+
+	Outputs:
+	list of 3 element tuples, where each tuple contains as a 1st element the
+	rarefaction depth, as a 2nd element the iteration number and as a 3rd
+	element the rarefied biom corresponding to this depth
+	"""
+
+	rarefaction_step_size = int((maximum - minimum)/steps)
+
+	rarefaction_maker = RarefactionMaker(biom_object, minimum,  maximum,\
+		rarefaction_step_size, iterations)
+	rarefactions = rarefaction_maker.rarefy_to_list()
+
 	return rarefactions
 
-def generate_alpha_rarefaction_plots_from_point_in_omega(chosen_samples, map_file_tuple,
-	filtered_biom_table, metrics_list, category, num_seqs_per_sam, num_iters, 
-	tree_object=None, std_type='stddev'):
-	"""Takes mapping file and biom table and generates alpha_rarefaction plots
-	
-	NOTES:
-	Omega is the parameter space. It is N/{0}**3 where the axes are 
-	number_of_subjects, number_of_samples_per_subject, and num_seqs_per_sam. 
-	
-	a nested dict with sampleIds of interest as keys, with values 
-		equal to a list of as many dictionaries as there 
-		number_of_axes. NOTE: result[sampleId1][0] gives the dictionary 
-		for the avg, min, max of first axis of the pcoa, i.e. the 
-		indexing is off by 1. 
-		{'SampleId1:[{'avg': axis1, 'min':axis1, 'max':axis1}, 
-					 {'avg': axis2, 'min':axis2, 'max':axis2}]
-		 'SampleId2:[{'avg': axis1, 'min':axis1, 'max':axis1}...}
-	outputs:
+def _format_rarefactions(rarefaction_data, samples):
+	"""utility to get rarefaction data into a make_averages compatible format
+
+	Inputs:
+	rarefaction_data: dictionary of alpha-div metrics and their values
+	samples: list of sample identifiers for each of the alpha-div calculations
+
+	Output:
+	output: qiime.make_rarefaction_plots.make_averages compatible rarefaction 
+	data
+	"""
+	output = {}
+	# each key is a metric, each value is a list of alpha diversity values
+	for key, value in rarefaction_data.iteritems():
+
+		# build the header of the table
+		_buffer = [['', 'sequences per sample', 'iteration']]
+		_buffer[0].extend(samples)
+		_buffer.append([])
+
+		# extract each of the rarefaction labels
+		_buffer.append([row[0] for row in value])
+
+		# all the rarefaction values must be formatted as floats
+		full_matrix = []
+		for row in value:
+			matrix_row = []
+			for element in row[1::]:
+				# some elements are strings and some elements are floats
+				try:
+					matrix_row.append(float(element))
+				except TypeError:
+					matrix_row.append(element)
+			full_matrix.append(matrix_row)
+		_buffer.append(full_matrix)
+
+		output[key] = tuple(_buffer)
+
+	return output
+
+def generate_alpha_rarefaction_plots_from_point_in_omega(mapping_file_tuple,
+														biom_object, metrics, 
+														sequences, iterations, 
+														tree_object=None, 
+														std_type='stddev'):
+	"""generate alpha rarefaction plots from a biom table and mapping file
+
+	Inputs:
+	mapping_file_tuple: mapping file data and headers in a tuple (data, headers)
+	biom_object: OTU table in a biom format corresponding to mapping_file_tuple
+	metrics: list of metrics, phylogenetic or non phylogenetic
+	sequences: maximum number of sequences for the rarefaction plots
+	iterations: number of repetitions per rarefaction
+	tree_object: tree to perform the phylogenetic operations, default is None
+	std_type: calculation to perform for the error bars, can be standard
+	deviation (stddev) or standard error (stderr), default is stddev 
+
+	Outputs:
+	html_string: HTML formatted string with the rarefaction plots for the given
+	parameters
 	"""
 	# The minimum depth is defined by the size of the maximum depth
-	num_reps = 4
-	min_depth = int(ceil(num_seqs_per_sam / num_reps))
+	steps = 4
+	min_depth = int(ceil(sequences / steps))
 
-	rarefied_bioms = get_rarefactions(filtered_biom_table, min_depth, 
-	   num_seqs_per_sam, num_iters, num_reps)
-	
-	#convert metrics list to a string
-	metrics = ','.join(metrics_list)
+	# get a rarefied biom with the proper identifiers
+	rarefied_bioms_list = get_rarefactions(biom_object, min_depth, sequences,\
+		iterations, steps)
+
 	alpha_rs = {}
 	alpha_filenames = []
-	for rb in rarefied_bioms:
-		key = 'alpha_rare_seqs_%s_iter_%s' % (str(rb[0]), str(rb[1]))
-		alpha_values = single_object_alpha(rb[2], metrics, tree_object)
-		alpha_rs[key] = (rb[0], rb[1], alpha_values.split('\n'))
-		alpha_filenames.append(key)
-	
-	# use the rarefaction with the fewest seqs/sample as the refrence 
-	ref_rare = single_object_alpha(rarefied_bioms[0][2], metrics, 
+	# rarefy all the biom objects and get the alpha diversity values
+	for rarefied_biom in rarefied_bioms_list:
+		# this tag contains data about the iteration and the depth
+		identifier = 'alpha_rare_%s_%s' % (str(rarefied_biom[0]), str(rarefied_biom[1]))
+		alpha_values = single_object_alpha(rarefied_biom[2], metrics, tree_object)
+		alpha_rs[identifier] = (rarefied_biom[0], rarefied_biom[1], alpha_values.split('\n'))
+		alpha_filenames.append(identifier)
+
+	# use the rarefaction with the fewest sequences per sample as the reference
+	ref_rare = single_object_alpha(rarefied_bioms_list[0][2], metrics,\
 		tree_object=tree_object).split('\n')
 	all_metrics, all_samples, example_data = parse_matrix(ref_rare)
 
-	num_cols = len(all_samples)
-	
-	#REFACTOR
-	# metrics_data is dict:
-	# {'Shannon':['alpha_rare_seqs_20_iter_0','5.64545',...], 'Chao1':...} 
+	# build a dictionary with the data for each of the metrics specified
 	metrics_data = {}
 	for metric in all_metrics:
-		metric_file_data = []
-		for fname in alpha_filenames:
-			f_metrics, f_samples, f_data = parse_matrix(alpha_rs[fname][2])
-			metric_file_data.append(\
-			  make_output_row(f_metrics, metric, f_samples, 
-				f_data, fname,num_cols,all_samples))
-		metrics_data[metric] = metric_file_data
-	
-	# convert the metrics_data to one long string to fool parse_rarefaction.
-	# need to be careful; parse_rarefaction thinks that its the column header
-	# if it starts with a tab.	make column header start with a tab, and 
-	# everything else start without a tab. include sequences and iteration data
-	
-	# REFACTOR
-	metrics_data_strings = {}
-	for metric in metrics_data:
-		metrics_lines = []
-		for line in metrics_data[metric]:
-			# need the following form alpha_rare_seqs_20_iter_0\t20\t0
-			num_seqs, iter = line[0].split('seqs_')[1].split('_iter_')
-			stringified_line = line[0]+'\t'+num_seqs+'\t'+iter+'\t'
-			
-			for list_element in line[1:]: # line[0] is the name, used above
-				stringified_line = stringified_line + str(list_element) + '\t'
-			# get rid of the final tab
-			stringified_line = stringified_line[:-1]
-			metrics_lines.append(stringified_line)
-		metrics_data_strings[metric] = metrics_lines
-	
-	# now we need to create the column header line	  
-	all_samples_string = '\t'.join(all_samples)
-	col_header = '\tsequences per sample\titeration\t'+all_samples_string +'\n'
-	# need the \n to match from file
-	
-	prefs, data, background_color, label_color, ball_scale, arrow_colors = \
-		color_prefs(map_file_tuple)
-	
-	# convert rarefaction strings/lists to proper format for make_average to use
-	rares = {}
-	for metric in all_metrics:
-		ds = metrics_data_strings[metric]
-		ds.append(col_header)
-		rares[metric] = parse_rarefaction(ds)
-		
-	html_output = make_averages(prefs, data, background_color, label_color, rares, 'dummy_fp', 75, 'png', None, False, std_type, output_type='memory')
-	
+		per_metric_data = []
+		for filename in alpha_filenames:
+			f_metrics, f_samples, f_data = parse_matrix(alpha_rs[filename][2])
+			per_metric_data.append(make_output_row(f_metrics, metric,\
+				f_samples, f_data, filename, len(all_samples), all_samples))
+		metrics_data[metric] = per_metric_data
+
+	# now format the dictionary to make it compatible with make_averages
+	rares = _format_rarefactions(metrics_data, all_samples)
+
+	# create all the coloring data for the alpha rarefaction plots
+	prefs, data, background_color, label_color = build_color_preferences(\
+		mapping_file_tuple)
+
+	# build the png data and create the html output
+	html_output = make_averages(prefs, data, background_color, label_color,\
+		rares, 'dummy_fp', 75, 'png', None, False, std_type, 'memory')
+
 	return html_output
