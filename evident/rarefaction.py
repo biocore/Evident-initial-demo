@@ -4,10 +4,10 @@ from __future__ import division
 
 __author__ = "William Van Treuren"
 __copyright__ = "Copyright 2012, Evident"
-__credits__ = ["William Van Treuren"]
+__credits__ = ["William Van Treuren", "Yoshiki Vazquez-Baeza"]
 __license__ = "GPL"
 __version__ = ".9-dev"
-__maintainer__ = "William Van Treuren"
+__maintainer__ = "Yoshiki Vazquez-Baeza"
 __email__ = "wdwvt1@gmail.com"
 __status__ = "Development"
 
