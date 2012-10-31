@@ -20,9 +20,9 @@ from evident import make_pcoa_plot
 from qiime.rarefaction import get_rare_data
 from qiime.principal_coordinates import pcoa
 from qiime.beta_diversity import single_object_beta
-from qiime.parse import parse_mapping_file, mapping_file_to_dict
+from qiime.parse import parse_mapping_file, mapping_file_to_dict, parse_coords
 
-def make_pcoa_webgl_string_from_files(pcoa_headers, points, map_headers, map_data):
+def make_pcoa_webgl_string_from_files(pcoa_headers, points, pct_var, map_headers, map_data):
     """make a WebGL representation of a pcoa plot with the provided data
 
     Input:
@@ -42,7 +42,7 @@ def make_pcoa_webgl_string_from_files(pcoa_headers, points, map_headers, map_dat
     if ellipses == {}:
         raise ValueError, 'Could not create PCoA plot'
 
-    webgl_string = make_pcoa_plot(ellipses, (map_data, map_headers))
+    webgl_string = make_pcoa_plot(ellipses, (map_data, map_headers), pct_var[:3])
     return webgl_string
 
 def get_pcoa_ellipsoid_coords(sampled_pcoa_strings, number_of_axes, sampleIds):
@@ -87,15 +87,19 @@ def get_pcoa_ellipsoid_coords(sampled_pcoa_strings, number_of_axes, sampleIds):
     sampleId_to_coords = {}
     sampleId_center_and_axes = {}
     for pcoa_string in sampled_pcoa_strings:
-        for line in pcoa_string.split('\n'):
-            line = line.split('\t')
-            if line[0] in sampleIds:
-                if line[0] not in sampleId_to_coords.keys():
-                    sampleId_to_coords[line[0]] = {'coords':[[] for i in range(1,number_of_axes+1,1)]}
-                    sampleId_center_and_axes[line[0]] = { 'center':[], 'axes_radii':[] }
-                for axis in range(number_of_axes):
-                    sampleId_to_coords[line[0]]['coords'][axis].append(float(line[axis+1]))
-
+        coord_header, coords, eigvals, pct_var = parse_coords(pcoa_string.split('\n'))
+        if 'variation explained' not in sampleId_to_coords:
+            sampleId_to_coords['variation explained'] = []
+        sampleId_to_coords['variation explained'].append(pct_var[:number_of_axes])
+        
+        for sampleName, values in zip(coord_header, coords):
+            if sampleName not in sampleId_to_coords.keys():
+                sampleId_to_coords[sampleName] = {'coords':[[] for i in range(1,number_of_axes+1,1)]}
+                sampleId_center_and_axes[sampleName] = { 'center':[], 'axes_radii':[] }
+            for axis in range(number_of_axes):
+                sampleId_to_coords[sampleName]['coords'][axis].append(values[axis])
+    sampleId_to_coords['variation explained'] = array(sampleId_to_coords['variation explained']).mean(0)
+    
     for samId in sampleId_center_and_axes:
         for axis in range(number_of_axes):
             center = array(sampleId_to_coords[samId]['coords'][axis]).mean()
@@ -106,7 +110,7 @@ def get_pcoa_ellipsoid_coords(sampled_pcoa_strings, number_of_axes, sampleIds):
                       sampleId_center_and_axes[samId]['center'][axis]).mean()
             sampleId_center_and_axes[samId]['axes_radii'].append(dfc)
 
-    return sampleId_center_and_axes
+    return sampleId_center_and_axes, sampleId_to_coords
 
 def generate_pcoa_cloud_from_point_in_omega(mapping_file_tuple, biom_object,
                                             metric, sequences, iterations, axes,
@@ -138,12 +142,11 @@ def generate_pcoa_cloud_from_point_in_omega(mapping_file_tuple, biom_object,
         pcoa_list.append(pcoa_results)
 
     # convert the list of pcoa lines into ellipsoid coords
-    ellipse_coords_by_sampleId = get_pcoa_ellipsoid_coords(pcoa_list, axes,\
-        full_id_list)
-
+    ellipse_coords_by_sampleId, sampleId_to_coords  = get_pcoa_ellipsoid_coords(pcoa_list, axes, full_id_list)
+        
     # check the ellipses are created correctly
     if type(ellipse_coords_by_sampleId) == type(''):
         raise ValueError, 'Could not create PCoA plot'
 
-    webgl_string = make_pcoa_plot(ellipse_coords_by_sampleId, mapping_file_tuple)
+    webgl_string = make_pcoa_plot(ellipse_coords_by_sampleId, mapping_file_tuple, sampleId_to_coords['variation explained'])
     return webgl_string
