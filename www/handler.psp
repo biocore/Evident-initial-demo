@@ -144,7 +144,7 @@ if form_input['viz']=='pcoa':
 		map_data, map_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
 		pcoa_headers, points, eigvals, pct_var = parse_coords(open(pcoa_fp,'U'))
 
-		webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, map_headers, map_data)
+		webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, pct_var, map_headers, map_data)
 
 	logging.debug('PCoA:	%f', time()-start_time)
 
