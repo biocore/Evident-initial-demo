@@ -42,7 +42,7 @@ from qiime.parse import parse_newick, parse_mapping_file, parse_coords
 
 import logging
 
-# req.write("hurf")
+# req.write("")
 
 def getjsdata():
     req.write(jsdata)
