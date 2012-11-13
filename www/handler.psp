@@ -31,24 +31,18 @@ from mod_python import Session
 from time import time
 
 from evident.demo import demo
-from evident.subsampling import select_samples
 from evident.pcoa import generate_pcoa_cloud_from_point_in_omega, make_pcoa_webgl_string_from_files
 from evident.rarefaction import generate_alpha_rarefaction_plots_from_point_in_omega
+from evident.error import raiseApacheError
 
-from biom.parse import parse_biom_table
-from biom.exception import TableException
-from qiime.filter import filter_mapping_file
-from qiime.parse import parse_newick, parse_mapping_file, parse_coords
+from qiime.parse import parse_newick, parse_coords
+
 
 import logging
 
 def getjsdata():
 	req.write(jsdata)
 
-def raiseApacheError(text):
-	"""Receives a text field and raises an exception in apache"""
-	req.write(text)
-	raise apache.SERVER_RETURN, 0
 
 ####
 #### Main
@@ -58,81 +52,30 @@ min_sequences  = 10
 
 # Converting in int some form vars
 form_input = {}
-form_input['study']		 = req.form['study']
+form_input['study']		 = session['study']
 form_input['iterations'] = int(req.form['iterations'])
-form_input['subjects']	 = int(req.form['subjects'])
-form_input['samples']	 = int(req.form['samples'])
-form_input['sequences']	 = int(req.form['sequences'])
-form_input['column']	 = req.form['column'].split(',')
+form_input['sequences']	 = session['sequences']
 form_input['viz']		 = req.form['viz']
-form_input['demo']		 = req.form['demo']
+form_input['demo']		 = session['demo']
 
-# Validating that number of iterations
+# Validating that number of iterations is reasonable
 if max_iterations<form_input['iterations']:
 	raiseApacheError('<b>Sorry we can not process more than %s iterations.</b>' % (max_iterations))
 
-# Validating arguments
-study = {}
-for i,line in enumerate(open('/evident/data/studies.txt')):
-	line = line.strip().split('\t')
-	if len(line)<1 or i==0 or line[0].startswith('#'):
-		continue
-
-	if str(form_input['study']) == str(line[1]):
-		# identify the position of the category in the header list so we can take the right max subj
-		# and max samples/subj values
-		study['headers'] = form_input['column']
-		study['name'] = line[0]
-		study['filename'] = line[1]
-		study['subject_column'] = line[2]
-
-# If the study couldn't be found or parsed
-if study == {}:
-	raiseApacheError('<b>Study <u>%s</u> does not exist.</b>' % form_input['study'])
-
-# Creating full paths to files
-mapping_fp	= '/evident/data/' + study['filename'] + '_map.txt'
-biom_fp		= '/evident/data/' + study['filename'] + '.biom'
+# Tree data
 tree_fp		= '/evident/data/gg_97_otus_4feb2011.tre'
-pcoa_fp		= '/evident/data/' + study['filename'] + '_unweighted_unifrac_pc.txt'
-alpha_fp	= '/evident/data/' + study['filename'] + '_alpha.html'
-
-# Starting subsampling
-logging.debug('============> Started')
-
-start_time = time()
-if form_input['demo']!="True":
-	map_data, headers, comments = parse_mapping_file(open(mapping_fp, 'U'))
-	biom_table = parse_biom_table(open(biom_fp, 'U'))
-
-	try:
-		# select only samples that meet ther criteria
-		chosen_samples, filtered_biom_table = select_samples(map_data, headers, biom_table, \
-			form_input['sequences'], study['subject_column'], form_input['subjects'], form_input['samples'])
-	except TableException:
-		raiseApacheError('<b>There are <u>not enough</u> subjects in this study: check your BIOM file and Mapping File have equal number of samples.</b>')
-
-	# check if we have enough samples to display a PCoA plot
-	if len(chosen_samples) < 3:
-		raiseApacheError('<b>At least <u>three</u> data-points are needed: try changing the values of Subjects or Samples per Subject.</b>')
-
-	# get the non redundant columns of the mapping file
-	interesting_headers, interesting_data = filter_mapping_file(map_data, headers, chosen_samples)
-	mapping_file_tuple = (interesting_data, interesting_headers)
-
-logging.debug('Subsampling: %f', time()-start_time)
-
+pcoa_fp		= '/evident/data/' + session['filename'] + '_unweighted_unifrac_pc.txt'
 tree_object = parse_newick(open(tree_fp))
 
 # Choosing visualization
 if form_input['viz']=='pcoa':
 	# Starting PCoA
 	start_time = time()
-	if form_input['demo']!="True":
+	if form_input['demo']!="true":
 		try:
 			webgl_string = generate_pcoa_cloud_from_point_in_omega(
-										mapping_file_tuple=mapping_file_tuple,
-										biom_object=filtered_biom_table,
+										mapping_file_tuple=session['mapping_file_tuple'],
+										biom_object=session['filtered_biom_table'],
 										metric='unifrac',
 										sequences=form_input['sequences'],
 										iterations=form_input['iterations'],
@@ -141,10 +84,8 @@ if form_input['viz']=='pcoa':
 		except ValueError:
 			raiseApacheError('<b>Could not create the PCoA plot, the ellipsoids were not created succesfully</b>')
 	else:
-		map_data, map_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
 		pcoa_headers, points, eigvals, pct_var = parse_coords(open(pcoa_fp,'U'))
-
-		webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, pct_var, map_headers, map_data)
+		webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, pct_var, session['interesting_headers'], session['interesting_data'])
 
 	logging.debug('PCoA:	%f', time()-start_time)
 
@@ -160,13 +101,13 @@ elif form_input['viz']=='alpha_stddev' or form_input['viz']=='alpha_stderr':
 	if form_input['study'] in ['hmp-v13','hmp-v35']:
 		raiseApacheError('Functionality not implemented for this study')
 
-	if form_input['demo']!="True":
+	if form_input['demo']!="true":
 		min_depth = 10
 		if form_input['sequences']==min_depth:
 			raiseApacheError('The min number of sequences for alpha diversity is 15, so you need to select at least this number')
 		html_string = generate_alpha_rarefaction_plots_from_point_in_omega(
-			mapping_file_tuple=mapping_file_tuple,
-			biom_object=filtered_biom_table,
+			mapping_file_tuple=session['mapping_file_tuple'],
+			biom_object=session['filtered_biom_table'],
 			metrics=['observed_species','Chao1', 'PD_whole_tree'],
 			sequences=form_input['sequences'],
 			iterations=form_input['iterations'],
@@ -178,7 +119,7 @@ elif form_input['viz']=='alpha_stddev' or form_input['viz']=='alpha_stderr':
 elif form_input['viz']=='taxonomy' :
 	raiseApacheError('Functionality not implemented')
 else:
-	raiseApacheError('Visualization <u>%s</u> does not exist' % form_input['column'])
+	raiseApacheError('Visualization <u>%s</u> does not exist' % form_input['viz'])
 
 %>
 
