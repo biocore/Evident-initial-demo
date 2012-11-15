@@ -158,9 +158,6 @@ if form_input['viz']=='pcoa':
 	logging.debug('Emperor: %f', time()-start_time)
 
 elif form_input['viz']=='alpha_stddev' or form_input['viz']=='alpha_stderr':
-	if form_input['study'] in ['hmp-v13','hmp-v35']:
-		raiseApacheError('Functionality not implemented for this study')
-
 	if form_input['demo']!="True":
 		min_depth = 10
 		if form_input['sequences']==min_depth:
