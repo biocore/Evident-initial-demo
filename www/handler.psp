@@ -91,11 +91,12 @@ if study == {}:
 	raiseApacheError('<b>Study <u>%s</u> does not exist.</b>' % form_input['study'])
 
 # Creating full paths to files
-mapping_fp	= '/evident/data/' + study['filename'] + '_map.txt'
-biom_fp		= '/evident/data/' + study['filename'] + '.biom'
-tree_fp		= '/evident/data/gg_97_otus_4feb2011.tre'
-pcoa_fp		= '/evident/data/' + study['filename'] + '_unweighted_unifrac_pc.txt'
-alpha_fp	= '/evident/data/' + study['filename'] + '_alpha.html'
+mapping_fp = '/evident/data/' + study['filename'] + '_map.txt'
+biom_fp = '/evident/data/' + study['filename'] + '.biom'
+tree_fp = '/evident/data/gg_97_otus_4feb2011.tre'
+pcoa_fp = '/evident/data/' + study['filename'] + '_unweighted_unifrac_pc.txt'
+alpha_stddev_fp = '/evident/data/' + study['filename'] + '_alpha_stddev.html'
+alpha_stderr_fp = '/evident/data/' + study['filename'] + '_alpha_stderr.html'
 
 # Starting subsampling
 logging.debug('============> Started')
@@ -172,7 +173,10 @@ elif form_input['viz']=='alpha_stddev' or form_input['viz']=='alpha_stderr':
 			iterations=form_input['iterations'],
 			tree_object=tree_object, std_type=form_input['viz'][6:])
 	else:
-		html_string = '\n'.join(open(alpha_fp,'U').readlines())
+		if form_input['viz']=='alpha_stddev':
+			html_string = '\n'.join(open(alpha_stddev_fp,'U').readlines())
+		elif form_input['viz']=='alpha_stderr':
+			html_string = '\n'.join(open(alpha_stderr_fp,'U').readlines())
 
 	req.write(html_string)
 elif form_input['viz']=='taxonomy' :
