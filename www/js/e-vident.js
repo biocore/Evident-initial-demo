@@ -157,32 +157,6 @@ function studyChanged() {
     document.getElementById('studycombop').className = document.getElementById("studycombobox").className.replace
       (/(?:^|\s)alert(?!\S)/ , '');
     
-    
-    // var studyname = document.getElementById('studycombobox')[document.getElementById('studycombobox').selectedIndex].value;
-    
-    // var lines = studydata[studyname][1].split('?');
-    // //first line is a header
-    // lines.shift();
-    // slidervals = [];
-    // 
-    // for(var i=0; i < lines.length; i++)
-    // {
-    //     slidervals.push(lines[i].split('\t'));
-    // }
-    
-    // if(document.visualizations[0].checked)
-    // {
-    //     var seqs = parseInt(demodata[studyname]);        
-    //     $("#sequenceslider").slider('option','max', parseInt(slidervals[slidervals.length-1][0]));
-    //     $("#sequenceslider").slider('option','value', seqs);
-    //     if(seqs == 0)
-    //         document.getElementById('sequences').innerHTML = 'N/A'
-    // }
-    // else
-    // {
-    //     $("#sequenceslider").slider('option','max', parseInt(slidervals[slidervals.length-1][0]));
-    //     $("#sequenceslider").slider('option','value', parseInt(slidervals[0][0]));
-    // }
     if(document.visualizations[0].checked)
     {
         
@@ -203,9 +177,25 @@ $(function(){
     });
 });
 
-//function to build the frame with relevant plot
+
+//function to catch the optimize button and call python subsampling -> optimize
 $(function(){
     $('input.optimize').click(function(){
+        $.ajax({ url: 'lib.psp',
+                data: { fn: 'subsample', 
+                        study: document.getElementById('studycombobox')[document.getElementById('studycombobox').selectedIndex].value,
+                        subjects: $("#subjectslider").slider("value"),
+                        samples:  $("#sampleslider").slider("value"),
+                        sequences: $("#sequenceslider").slider("value"),
+                        demo: document.visualizations[0].checked
+                      },
+                success: process_optimize});
+    });
+});
+
+
+//function to build the frame with relevant plot
+function process_optimize() {
         //remove alert box around study selector
         document.getElementById('studycombop').className = document.getElementById("studycombobox").className.replace
       (/(?:^|\s)alert(?!\S)/ , '');
@@ -260,24 +250,15 @@ $(function(){
             //if current vis box is checked then build a frame for it
             if(document.visualizations[i].checked)
             {
-                 content += "<div ><img id=\"loading\" class=\"loading\" src=\"./img/loading.gif\"></div>";
-                 content += "<iframe src=\"handler.psp?";
-                 content += "viz="+document.visualizations[i].name;
-                 content += "&study="+document.getElementById('studycombobox')[document.getElementById('studycombobox').selectedIndex].value;
-                 content += "&subjects="+$("#subjectslider").slider("value");
-                 content += "&samples="+$("#sampleslider").slider("value");
-                 content += "&sequences="+$("#sequenceslider").slider("value");
-                 content += "&iterations="+$("#iterationslider").slider("value");
-                 content += "&column=";
+                content += "<div ><img id=\"loading\" class=\"loading\" src=\"./img/loading.gif\"></div>";
+                content += "<iframe src=\"handler.psp?";
+                content += "viz="+document.visualizations[i].name;
+                content += "&iterations="+$("#iterationslider").slider("value");
+                content += "&column=";
                 for(var j = 0; j < validColumns.length; j++)
-                    content += validColumns[j]+',';
+                   content += validColumns[j]+',';
                 content = content.slice(0,-1)
-                 //if demo box is checked send that info to the frame handler
-                 if(document.visualizations[0].checked)
-                    content += "&demo=True";
-                 else
-                    content += "&demo=False";
-                 content += "\" onLoad=\"loaded()\" onabort=\"loaded()\"></iframe>";
+                content += "\" onLoad=\"loaded()\" onabort=\"loaded()\"></iframe>";
                 //add a tab with this frame in it 
                 addTab(document.visualizations[i].name,document.visualizations[i].value,content);
             }
@@ -290,8 +271,8 @@ $(function(){
              .addClass("ui-corner-bottom viz");
         });
         document.getElementById('optimize').disabled = true;  
-    });
-});
+    }
+
 
 //jquery to activate sample slider
 $(function() {
