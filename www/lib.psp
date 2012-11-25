@@ -4,6 +4,7 @@ import os
 
 from qiime.parse import parse_mapping_file
 from qiime.filter import filter_mapping_file
+from qiime.format import format_biom_table
 
 from biom.parse import parse_biom_table
 from biom.exception import TableException
@@ -50,8 +51,6 @@ class EvidentLib:
         session['demo'] = req.form['demo']
         subjects = int(req.form['subjects'])
         samples = int(req.form['samples'])
-        #columns = req.form['column'].split(',')
-        #study['headers'] = columns
         
         # Validating arguments
         study = {}
@@ -76,29 +75,28 @@ class EvidentLib:
         if session['demo']!="true":
             map_data, headers, comments = parse_mapping_file(open(mapping_fp, 'U'))
             biom_table = parse_biom_table(open(biom_fp, 'U'))
-#            
-#             try:
-#                 # select only samples that meet ther criteria
-            chosen_samples, filtered_biom_table = select_samples(map_data, headers, biom_table, session['sequences'], study['subject_column'], subjects, samples)
-            
-            # check if we have enough samples to display a PCoA plot
-            if len(chosen_samples) < 3:
-                raiseApacheError('<b>At least <u>three</u> data-points are needed: try changing the values of Subjects or Samples per Subject.</b>')
-            
-            session['chosen_samples'] = chosen_samples
-            session['filtered_biom_table'] = biom_table
-#             except TableException:
-#                 act= 1
-#                 #raiseApacheError('<b>There are <u>not enough</u> subjects in this study: check your BIOM file and Mapping File have equal number of samples.</b>')
-#                 
+           
+            try:
+                # select only samples that meet ther criteria
+                chosen_samples, filtered_biom_table = select_samples(map_data, headers, biom_table, session['sequences'], study['subject_column'], subjects, samples)
+                # check if we have enough samples to display a PCoA plot
+                if len(chosen_samples) < 3:
+                    raiseApacheError('<b>At least <u>three</u> data-points are needed: try changing the values of Subjects or Samples per Subject.</b>')
+                    
+                session['chosen_samples'] = chosen_samples
+                session['filtered_biom_table'] = format_biom_table(filtered_biom_table)
+            except TableException:
+                raiseApacheError('<b>There are <u>not enough</u> subjects in this study: check your BIOM file and Mapping File have equal number of samples.</b>')
+                
             
             # get the non redundant columns of the mapping file
             interesting_headers, interesting_data = filter_mapping_file(map_data, headers, chosen_samples)
-            session['mapping_file_tuple'] = (interesting_data, interesting_headers)
         else:
             interesting_data, interesting_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
             session['interesting_headers'] = interesting_headers
             session['interesting_data'] = interesting_data
+        
+        session['mapping_file_tuple'] = (interesting_data, interesting_headers)
 
         session.save()
         

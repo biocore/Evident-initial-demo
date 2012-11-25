@@ -31,17 +31,28 @@ from mod_python import Session
 from time import time
 
 from evident.demo import demo
+from evident.subsampling import select_samples
 from evident.pcoa import generate_pcoa_cloud_from_point_in_omega, make_pcoa_webgl_string_from_files
 from evident.rarefaction import generate_alpha_rarefaction_plots_from_point_in_omega
 from evident.error import raiseApacheError
 
-from qiime.parse import parse_newick, parse_coords
+from biom.parse import parse_biom_table
+from biom.exception import TableException
+from qiime.filter import filter_mapping_file
+from qiime.parse import parse_newick, parse_mapping_file, parse_coords
 
+from StringIO import StringIO
 
 import logging
 
 def getjsdata():
 	req.write(jsdata)
+	
+def create_emperor_output(data):
+    # Emperor
+    req.write(open('/evident/www/emperor/emperor_head.html','U').read())
+    req.write(data)
+    req.write(open('/evident/www/emperor/emperor.html','U').read())
 
 
 ####
@@ -50,77 +61,68 @@ def getjsdata():
 max_iterations = 10
 min_sequences  = 10
 
-# Converting in int some form vars
-form_input = {}
-form_input['study']		 = session['study']
-form_input['iterations'] = int(req.form['iterations'])
-form_input['sequences']	 = session['sequences']
-form_input['viz']		 = req.form['viz']
-form_input['demo']		 = session['demo']
+# Reading / parsing some values
+iterations = int(req.form['iterations'])
+viz = req.form['viz']
 
-# Validating that number of iterations is reasonable
-if max_iterations<form_input['iterations']:
+# Validating that number of iterations
+if max_iterations<iterations:
 	raiseApacheError('<b>Sorry we can not process more than %s iterations.</b>' % (max_iterations))
 
-# Tree data
+# Creating full paths to files
+mapping_fp	= '/evident/data/' + session['filename'] + '_map.txt'
 tree_fp		= '/evident/data/gg_97_otus_4feb2011.tre'
 pcoa_fp		= '/evident/data/' + session['filename'] + '_unweighted_unifrac_pc.txt'
+alpha_fp	= '/evident/data/' + session['filename'] + '_alpha.html'
+
 tree_object = parse_newick(open(tree_fp))
 
+
 # Choosing visualization
-if form_input['viz']=='pcoa':
-	# Starting PCoA
-	start_time = time()
-	if form_input['demo']!="true":
-		try:
-			webgl_string = generate_pcoa_cloud_from_point_in_omega(
-										mapping_file_tuple=session['mapping_file_tuple'],
-										biom_object=session['filtered_biom_table'],
+if session['demo']!="true":
+    mapping_file_tuple = session['mapping_file_tuple']
+    filtered_biom_table = parse_biom_table(StringIO(session['filtered_biom_table']))
+    if viz=='pcoa':
+        try:
+            webgl_string = generate_pcoa_cloud_from_point_in_omega(
+										mapping_file_tuple=mapping_file_tuple,
+										biom_object=filtered_biom_table,
 										metric='unifrac',
-										sequences=form_input['sequences'],
-										iterations=form_input['iterations'],
+										sequences=session['sequences'],
+										iterations=iterations,
 										axes=3,
 										tree_object=tree_object)
-		except ValueError:
-			raiseApacheError('<b>Could not create the PCoA plot, the ellipsoids were not created succesfully</b>')
-	else:
-		pcoa_headers, points, eigvals, pct_var = parse_coords(open(pcoa_fp,'U'))
-		webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, pct_var, session['interesting_headers'], session['interesting_data'])
-
-	logging.debug('PCoA:	%f', time()-start_time)
-
-	# Emperor
-	start_time = time()
-	req.write(open('/evident/www/emperor/emperor_head.html','U').read())
-	req.write(webgl_string)
-	req.write(open('/evident/www/emperor/emperor.html','U').read())
-
-	logging.debug('Emperor: %f', time()-start_time)
-
-elif form_input['viz']=='alpha_stddev' or form_input['viz']=='alpha_stderr':
-	if form_input['study'] in ['hmp-v13','hmp-v35']:
-		raiseApacheError('Functionality not implemented for this study')
-
-	if form_input['demo']!="true":
-		min_depth = 10
-		if form_input['sequences']==min_depth:
-			raiseApacheError('The min number of sequences for alpha diversity is 15, so you need to select at least this number')
-		html_string = generate_alpha_rarefaction_plots_from_point_in_omega(
-			mapping_file_tuple=session['mapping_file_tuple'],
-			biom_object=session['filtered_biom_table'],
+        except ValueError:
+            raiseApacheError('<b>Could not create the PCoA plot, the ellipsoids were not created succesfully</b>')
+        create_emperor_output(webgl_string)
+    elif viz=='alpha_stddev' or viz=='alpha_stderr':
+        if session['study'] in ['hmp-v13','hmp-v35']:
+            raiseApacheError('Functionality not implemented for this study')	        
+        min_depth = 10
+        if session['sequences']==min_depth:
+            raiseApacheError('The min number of sequences for alpha diversity is 15, so you need to select at least this number')
+        html_string = generate_alpha_rarefaction_plots_from_point_in_omega(
+			mapping_file_tuple=mapping_file_tuple,
+			biom_object=filtered_biom_table,
 			metrics=['observed_species','Chao1', 'PD_whole_tree'],
-			sequences=form_input['sequences'],
-			iterations=form_input['iterations'],
-			tree_object=tree_object, std_type=form_input['viz'][6:])
-	else:
-		html_string = '\n'.join(open(alpha_fp,'U').readlines())
-
-	req.write(html_string)
-elif form_input['viz']=='taxonomy' :
-	raiseApacheError('Functionality not implemented')
+			sequences=session['sequences'],
+			iterations=iterations,
+			tree_object=tree_object, std_type=viz[6:])
+        req.write(html_string)
+    else:
+        raiseApacheError('Visualization <u>%s</u> does not exist' % viz)
 else:
-	raiseApacheError('Visualization <u>%s</u> does not exist' % form_input['viz'])
+    if viz=='pcoa':
+        map_data, map_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
+        pcoa_headers, points, eigvals, pct_var = parse_coords(open(pcoa_fp,'U'))
 
+        webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, pct_var, map_headers, map_data)
+        create_emperor_output(webgl_string)
+    elif viz=='alpha_stddev' or viz=='alpha_stderr':
+        html_string = '\n'.join(open(alpha_fp,'U').readlines())
+    else:
+        raiseApacheError('Visualization <u>%s</u> does not exist' % viz)
+        
 %>
 
 </body>
