@@ -1,6 +1,19 @@
 <%
+from mod_python import Session
 import os
+
+from qiime.parse import parse_mapping_file
+from qiime.filter import filter_mapping_file
+from qiime.format import format_biom_table
+
+from biom.parse import parse_biom_table
+from biom.exception import TableException
+
+from evident.subsampling import select_samples
+from evident.error import raiseApacheError
+
 class EvidentLib:
+
     def loadStudyData(self):
         studies = {}
         studydata = open('evident/data/studies.txt').readlines()
@@ -28,13 +41,72 @@ class EvidentLib:
         jslines = jslines[:-1]
         jslines += '}}'
         req.write(jslines)
-        # req.write('alert("'+jslines+'")')
-    
+
+
+    def subsample(self):
+        session = Session.Session(req)
+        
+        session['study'] = req.form['study']
+        session['sequences'] = int(req.form['sequences'])
+        session['demo'] = req.form['demo']
+        subjects = int(req.form['subjects'])
+        samples = int(req.form['samples'])
+        
+        # Validating arguments
+        study = {}
+        for i,line in enumerate(open('/evident/data/studies.txt')):
+            line = line.strip().split('\t')
+            if len(line)<1 or i==0 or line[0].startswith('#'):
+                continue
+            if str(session['study']) == str(line[1]):
+                study['name'] = line[0]
+                session['filename'] = line[1]
+                study['subject_column'] = line[2]
+                
+        # If the study couldn't be found or parsed
+        if study == {}:
+            raiseApacheError('<b>Study <u>%s</u> does not exist.</b>' % form_input['study'])
+            
+        # Creating full paths to files
+        mapping_fp	= '/evident/data/' + session['filename'] + '_map.txt'
+        biom_fp		= '/evident/data/' + session['filename'] + '.biom'
+        alpha_fp	= '/evident/data/' + session['filename'] + '_alpha.html'
+        
+        if session['demo']!="true":
+            map_data, headers, comments = parse_mapping_file(open(mapping_fp, 'U'))
+            biom_table = parse_biom_table(open(biom_fp, 'U'))
+           
+            try:
+                # select only samples that meet ther criteria
+                chosen_samples, filtered_biom_table = select_samples(map_data, headers, biom_table, session['sequences'], study['subject_column'], subjects, samples)
+                # check if we have enough samples to display a PCoA plot
+                if len(chosen_samples) < 3:
+                    raiseApacheError('<b>At least <u>three</u> data-points are needed: try changing the values of Subjects or Samples per Subject.</b>')
+                    
+                session['chosen_samples'] = chosen_samples
+                session['filtered_biom_table'] = format_biom_table(filtered_biom_table)
+            except TableException:
+                raiseApacheError('<b>There are <u>not enough</u> subjects in this study: check your BIOM file and Mapping File have equal number of samples.</b>')
+                
+            
+            # get the non redundant columns of the mapping file
+            interesting_headers, interesting_data = filter_mapping_file(map_data, headers, chosen_samples)
+        else:
+            interesting_data, interesting_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
+            session['interesting_headers'] = interesting_headers
+            session['interesting_data'] = interesting_data
+        
+        session['mapping_file_tuple'] = (interesting_data, interesting_headers)
+
+        session.save()
+        
+        
     def saveSVG(self):
         SVGcontent = req.form['SVGdata']
         fname = 'exports/test.svg'
         open('evident/www/'+fname,'w').write(SVGcontent)
         req.write("'"+fname+"'")
+    
     
     def test(self):
         req.write("{'hurf':'durf','data':['cat','dog','rabbit']}" )
