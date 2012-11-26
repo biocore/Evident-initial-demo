@@ -32,7 +32,9 @@ class TopLevelTests(TestCase):
         self.list_of_study_names = ['hmp-v13', 'hmp-v35', 'keyboard',\
                                     'turnbaugh-twins', 'wholebody']
         self.list_of_file_suffixes = ['.biom', '_map.txt', '_selectors.txt',\
-                                        '_unweighted_unifrac_pc.txt']
+                                        '_unweighted_unifrac_pc.txt',
+                                        '_alpha_stddev.html',
+                                        '_alpha_stderr.html']
 
         self.list_of_resources = ['gg_97_otus_4feb2011.tre', 'studies.txt']
 

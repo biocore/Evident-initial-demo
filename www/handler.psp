@@ -73,7 +73,8 @@ if max_iterations<iterations:
 mapping_fp	= '/evident/data/' + session['filename'] + '_map.txt'
 tree_fp		= '/evident/data/gg_97_otus_4feb2011.tre'
 pcoa_fp		= '/evident/data/' + session['filename'] + '_unweighted_unifrac_pc.txt'
-alpha_fp	= '/evident/data/' + session['filename'] + '_alpha.html'
+alpha_stddev_fp = '/evident/data/' + session['filename'] + '_alpha_stddev.html'
+alpha_stderr_fp = '/evident/data/' + session['filename'] + '_alpha_stderr.html'
 
 tree_object = parse_newick(open(tree_fp))
 
@@ -96,8 +97,6 @@ if session['demo']!="true":
             raiseApacheError('<b>Could not create the PCoA plot, the ellipsoids were not created succesfully</b>')
         create_emperor_output(webgl_string)
     elif viz=='alpha_stddev' or viz=='alpha_stderr':
-        if session['study'] in ['hmp-v13','hmp-v35']:
-            raiseApacheError('Functionality not implemented for this study')	        
         min_depth = 10
         if session['sequences']==min_depth:
             raiseApacheError('The min number of sequences for alpha diversity is 15, so you need to select at least this number')
@@ -119,7 +118,12 @@ else:
         webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, pct_var, map_headers, map_data)
         create_emperor_output(webgl_string)
     elif viz=='alpha_stddev' or viz=='alpha_stderr':
-        html_string = '\n'.join(open(alpha_fp,'U').readlines())
+        if viz == 'alpha_stddev':
+            html_string = '\n'.join(open(alpha_stddev_fp,'U').readlines())
+        elif viz == 'alpha_stderr':
+            html_string = '\n'.join(open(alpha_stderr_fp,'U').readlines())
+
+        req.write(html_string)
     else:
         raiseApacheError('Visualization <u>%s</u> does not exist' % viz)
         
