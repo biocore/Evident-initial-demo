@@ -45,6 +45,8 @@ from StringIO import StringIO
 
 import logging
 
+req.write("")
+
 def getjsdata():
 	req.write(jsdata)
 	

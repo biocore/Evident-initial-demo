@@ -1,7 +1,7 @@
-	/*
- * __author__ = "Antonio Gonzalez Pena"
+/*
+ * __author__ = "Meg Pirrung"
  * __copyright__ = "Copyright 2012, E-vident"
- * __credits__ = ["Antonio Gonzalez Pena, Meg Pirrung"]
+ * __credits__ = ["Meg Pirrung, Antonio Gonzalez Pena"]
  * __license__ = "GPL"
  * __version__ = "0.01-dev"
  * __maintainer__ = "Meg Pirrung"
@@ -15,21 +15,21 @@ var plotIds = [];		//IDs of all items that are plotted
 var plotSpheres = {};	//all spheres that are plotted
 var ellipses;
 var plotEllipses = {};	//all ellipses that are plotted
-var pc1;
-var pc2;
-var pc3;
+var pc1; //label for pc1
+var pc2; //label for pc2
+var pc3; //label for pc3
 var ellipseOpacity = .2;
 var sphereOpacity = 1.0;
 var sphereScale;
 var sphere;         //generic sphere used for plots
 var particle;       //generic particle use for plots
 var scene;          //scene that holds the plot
-var group;
+var group;          //group that holds the plotted shapes
 var camera;			//plot camera
 var max; 			//maximum value of a plot, used for camera placement
 var category = "";	//current coloring category
 var catIndex = 0;	//current coloring category index
-var foundId = "";
+var foundId = "";   //id of currently located point
 var keyBuilt = false;
 var animationSpeed = 60;
 var time;
@@ -56,9 +56,15 @@ function dedupe(list) {
    return list;
 }
 
+/* generates a list of colors that corresponds to a list of values
+if the values are continuous the colors correspond to their numeric
+value, if values are discreet it is just a gradient with an even
+step size in between each value */
 function getColorList(vals) {
-var colorVals = [];
+    var colorVals = [];
 	var isNumeric = true;
+	
+	//figure out if the values are continuous or not
 	for(var i = 0; i < vals.length; i++)
 	{
 		if(isNaN(parseFloat(vals[i])))
@@ -67,6 +73,7 @@ var colorVals = [];
 			colorVals[i] = parseFloat(vals[i]);
 	}
 	
+	// figure out start and max values, list is sorted
 	var start = colorVals[0];
 	var max = colorVals[colorVals.length-1]-colorVals[0];
 
@@ -114,11 +121,13 @@ var colorVals = [];
 	return colors;
 }
 
+/* timers for debugging */
 function startTimer() {
     var d=new Date()
     time = d.getTime();
 }
 
+/* timers for debugging */
 function stopTimer(info) {
     var d=new Date()
     time = d.getTime() - time;
@@ -136,7 +145,6 @@ function colorByMenuChanged() {
 	for(var i in plotIds){
 		vals.push(mapping[plotIds[i]][catIndex]);
 	}
-	
 	
 	vals = dedupe(vals).sort();
 	
@@ -161,7 +169,7 @@ function colorByMenuChanged() {
 	lines += "</table>";
 	document.getElementById("colorbylist").innerHTML = lines;
 
-	startTimer()
+    // startTimer()
 	for(var i in vals){
 		var validVal = vals[i].replace(/[\. :!@#$%^&*()]/g,'');
 		// get the div built earlier and turn it into a color picker
@@ -176,13 +184,13 @@ function colorByMenuChanged() {
                                    var c = color.toHexString();
                                    if(c.length == 4)
                                        c = "#"+c.charAt(1)+c.charAt(1)+c.charAt(2)+c.charAt(2)+c.charAt(3)+c.charAt(3);
-                                    startTimer()
+                                    // startTimer()
                                     colorChanged($(this).attr('name'), c);
-                                    stopTimer('colorChanged')
+                                    // stopTimer('colorChanged')
                                    }
                                });
 	}
-	stopTimer('set color box')
+    // stopTimer('set color box')
     setKey(vals, colors);
 }
 
@@ -233,12 +241,13 @@ function showByMenuChanged() {
 
 /* Toggle plot items by category selected in showby menu */
 function toggleVisible(value) {
-    startTimer()
+    // startTimer()
 	var hidden = !document.showbyform.elements[value+'_show'].checked;
 	
 	var category = document.getElementById('showbycombo')[document.getElementById('showbycombo').selectedIndex].value;
     // value = value.replace('_','');
     // console.log(value)
+    //change visibility of points depending on metadata category
 	for(var i in plotIds)
 	{
 	var sid = plotIds[i];
@@ -253,10 +262,7 @@ function toggleVisible(value) {
 		    group.remove(plotSpheres[sid])
 		    visiblePoints--
 		    }catch(TypeError){}
-            // plotEllipses[sid].material.opacity = 0;
-            // plotSpheres[sid].material.opacity = 0;
 			$('#'+divid+"_label").css('display','none');
-			
 		}
 		else if(mappingVal == value && !hidden)
 		{
@@ -267,13 +273,11 @@ function toggleVisible(value) {
 		    group.add(plotSpheres[sid])
 		    visiblePoints++
 		    }catch(TypeError){}
-            // plotEllipses[sid].material.opacity = .2;
-            // plotSpheres[sid].material.opacity = 1;
 			$('#'+divid+"_label").css('display','block');
 		}
 	}
 	changePointCount()
-	stopTimer('toggleVisibiity')
+    // stopTimer('toggleVisibiity')
 }
 
 /* build the plot legend in HTML*/
@@ -281,7 +285,7 @@ function setKey(values, colors) {
 	if(keyBuilt){
 		for(var i = 0; i < values.length; i++)
 			colorChanged(values[i], '#'+colors[i].getHex());
-	}else {
+	} else {
 		var keyHTML = "<table class=\"key\">";
 		for(var i in plotIds)
 		{
@@ -319,6 +323,8 @@ function setKey(values, colors) {
 	}	
 }
 
+/*toggles the little arrow used to locate a point by double clicking
+its colorbox in the key */
 function toggleFinder(div, divName) {
 	if(foundId != divName) {
 			$('.colorbox').css('border','1px solid black');
@@ -330,16 +336,15 @@ function toggleFinder(div, divName) {
 			foundId = divName;
 		}
 		else {
-		if($('#finder').css('opacity') == 1)
-		{
-			$('#finder').css('opacity',0);
-			div.css('border','1px solid black');
-			foundId = null
-		}
-		else {
-			$('#finder').css('opacity',1);
-			div.css('border','1px solid white');
-			}
+		    if($('#finder').css('opacity') == 1) {
+    			$('#finder').css('opacity',0);
+    			div.css('border','1px solid black');
+    			foundId = null
+    		}
+    		else {
+    			$('#finder').css('opacity',1);
+    			div.css('border','1px solid white');
+    		}
 		}
 }
 
@@ -363,7 +368,7 @@ function colorChanged(catValue,color) {
 	}
 }
 
-/* This function is called when a new value is selected in the colorBy menu */
+/* This function is called when a new value is selected in the label menu */
 function labelMenuChanged() {
 	if(document.getElementById('labelcombo').selectedIndex == 0)
 	{
@@ -426,6 +431,7 @@ function labelMenuChanged() {
 	}
 }
 
+/* function called when a label color is changed */
 function labelColorChanged(value, color) {
 	var category = document.getElementById('labelcombo')[document.getElementById('labelcombo').selectedIndex].value;
 
@@ -494,6 +500,7 @@ function toScreenXY( position, camera, jqdiv ) {
          y: ( - pos.y + 1 ) * jqdiv.height() / 2 + jqdiv.offset().top };
 }
 
+/* used to filter the key to a user's provided search string */
 function filterKey() {
 	var searchVal = document.keyFilter.filterBox.value.toLowerCase();
 	for(var i in plotIds)
@@ -533,6 +540,7 @@ function lopacitychange(ui) {
 	$('#labels').css('opacity', labelOpacity);
 }
 
+/* handle events from the sphere radius slider */
 function sradiuschange(ui) {
 	document.getElementById('sphereradius').innerHTML = ui.value/5;
 	var scale = ui.value/5.0;
@@ -767,12 +775,9 @@ function SVGSaved(response){
     console.log(fileName)
 }
 
+/* update point count label */
 function changePointCount() {
     document.getElementById('pointCount').innerHTML = visiblePoints+'/'+plotIds.length+' points'
-}
-
-function changeSphereRadius() {
-	
 }
 
 $(document).ready(function() {
