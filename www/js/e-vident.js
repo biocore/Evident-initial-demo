@@ -181,21 +181,6 @@ $(function(){
 //function to catch the optimize button and call python subsampling -> optimize
 $(function(){
     $('input.optimize').click(function(){
-        $.ajax({ url: 'lib.psp',
-                data: { fn: 'subsample', 
-                        study: document.getElementById('studycombobox')[document.getElementById('studycombobox').selectedIndex].value,
-                        subjects: $("#subjectslider").slider("value"),
-                        samples:  $("#sampleslider").slider("value"),
-                        sequences: $("#sequenceslider").slider("value"),
-                        demo: document.visualizations[0].checked
-                      },
-                success: process_optimize});
-    });
-});
-
-
-//function to build the frame with relevant plot
-function process_optimize() {
         //remove alert box around study selector
         document.getElementById('studycombop').className = document.getElementById("studycombobox").className.replace
       (/(?:^|\s)alert(?!\S)/ , '');
@@ -214,6 +199,7 @@ function process_optimize() {
       (/(?:^|\s)alert(?!\S)/ , '');
       //disable optimize button so it can only be clicked once
       document.getElementById('optimize').disabled = true;
+      
       var checkedcnt = 0;
       
       //figure out how many frames need to be built
@@ -228,12 +214,42 @@ function process_optimize() {
             document.getElementById('opswrapper').className += " alert";
             return;
         }
-        
+      
         //collapse the info accordion
         if($("#accordion").accordion('option','active') == 0)
             $("#accordion").accordion('option','active',false);
-        
+      
         //remove the blank home tab
+        var len = $("#tabs").tabs("length");
+        for(var i = 0; i < len; i++)
+            $("#tabs").tabs("remove",0);
+        
+        var loadinghtml = '<div><img id=\"loading\" class=\"loading\" src=\"./img/loading.gif\"></div>'
+        addTab('Loading','loading',loadinghtml);
+        $.ajax({ url: 'lib.psp',
+                data: { fn: 'subsample', 
+                        study: document.getElementById('studycombobox')[document.getElementById('studycombobox').selectedIndex].value,
+                        subjects: $("#subjectslider").slider("value"),
+                        samples:  $("#sampleslider").slider("value"),
+                        sequences: $("#sequenceslider").slider("value"),
+                        demo: document.visualizations[0].checked
+                      },
+                success: process_optimize});
+    });
+});
+
+
+//function to build the frame with relevant plot
+function process_optimize() {
+      var checkedcnt = 0;
+      
+      //figure out how many frames need to be built
+      for(i=0; i< document.visualizations.length; i++){
+          if(document.visualizations[i].checked)
+            checkedcnt += 1;
+       }
+        
+        //remove the loading tab
         var len = $("#tabs").tabs("length");
         for(var i = 0; i < len; i++)
             $("#tabs").tabs("remove",0);
@@ -250,7 +266,7 @@ function process_optimize() {
             //if current vis box is checked then build a frame for it
             if(document.visualizations[i].checked)
             {
-                content += "<div ><img id=\"loading\" class=\"loading\" src=\"./img/loading.gif\"></div>";
+                content += "<div><img id=\"loading\" class=\"loading\" src=\"./img/loading.gif\"></div>";
                 content += "<iframe src=\"handler.psp?";
                 content += "viz="+document.visualizations[i].name;
                 content += "&iterations="+$("#iterationslider").slider("value");
