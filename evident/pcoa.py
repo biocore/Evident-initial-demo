@@ -64,25 +64,19 @@ def get_pcoa_ellipsoid_coords(sampled_pcoa_strings, number_of_axes, sampleIds):
      'SampleId2:{'center':[x,y,z,w]
                  'axes_radii':[x_radius, y_radius, z_radius, w_radius]}
 
-    Assume that the following represents the x pcoa axis, and each + is the
-    x coordinate of a point produced by the pcoa plots code.
-
-    x_axis  = +...+..+.+.+.+..........0..........+.+.+..+..............+
-    density =     ---------------------------------------
-    Now, in the ideal world, we would want the ellipse to be darker, or the
-    transparency to change based on the fact that even though we might every
-    once in a while get an outlier point which would be either really high or
-    really low on the x axis, the majority of the probability density is located
-    in a certain interval. thus, when we need to calculate the length of the
-    ellipsoid axes we have several possible ways we could go: 
-        1. Take the average of the abs of the x points and then that is the 
-        ellipse x axis. This means that the ellipse we would produce would not
-        actually show the full extent of how far the data could move, but would
-        weight the ellipse.
-        2. Take a 95 percent confidence interval, pick a length for the axis
-        that includes at least 95 percent of the x points.
-        3. Weighting function
-        4. Use the max CURRENTLY USING 1
+    The ellipsoids that are calculated by this function are NOT minimum spanning
+    ellipsoids. This function looks at all the iterations for a given sample
+    and the calculates the center and max distance from the center of each of 
+    those iterations along each individual axis. While this ensures that the 
+    most extreme points on any given axis are contained within the ellipse it 
+    isn't guaranteed that every point will be contained. As an example, 
+    circumscribe a rectangle about an ellipse so that the ellipse and rectangle 
+    are co-linear at 4 points (i.e. rectangle is just big enough to contain 
+    the ellipse). Take a corner of the rectangle and move it towards the center
+    of the ellipse so that its x and y components diminish in magnitude. This 
+    new point will not be contained within the ellipse, but its x and y 
+    coordinates will be less extreme than the most extreme points of the 
+    ellipse (the points that are colinear with the minor and major axis.)
     """
     sampleId_to_coords = {}
     sampleId_center_and_axes = {}
