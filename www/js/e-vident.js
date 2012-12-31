@@ -232,7 +232,11 @@ $(function(){
                         subjects: $("#subjectslider").slider("value"),
                         samples:  $("#sampleslider").slider("value"),
                         sequences: $("#sequenceslider").slider("value"),
-                        demo: document.visualizations[0].checked
+                        iterations: $("#iterationslider").slider("value"),
+                        demo: document.visualizations[0].checked,
+                        pcoa: document.visualizations[1].checked,
+                        alpha_stddev: document.visualizations[2].checked,
+                        alpha_stderr: document.visualizations[3].checked
                       },
                 success: process_optimize});
     });

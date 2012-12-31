@@ -6,8 +6,8 @@
 <script type="text/javascript" src="js/jquery-ui-1.8.17.custom.min.js"></script>
 <script type="text/javascript" >
 function loaded() {
-	var img = window.top.document.getElementById("loading");
-	img.parentNode.removeChild(img);
+    var img = window.top.document.getElementById("loading");
+    img.parentNode.removeChild(img);
 }
 </script>
 </head>
@@ -15,7 +15,7 @@ function loaded() {
 <%
 __author__ = "Antonio Gonzalez Pena"
 __copyright__ = "Copyright 2011-2012, Evident"
-__credits__ = ["Antonio Gonzalez Pena"]
+__credits__ = ["Antonio Gonzalez Pena", "Yoshiki Vazquez Baeza"]
 __license__ = "GPL"
 __version__ = "0.1.dev"
 __maintainer__ = ["Antonio Gonzalez Pena"]
@@ -26,19 +26,27 @@ __status__ = "Development"
 This script coordinates the interactions between the index page and the rest of the libraries
 """
 
+# prevents runtime error with matplotlib, hence this statement must preceed
+# any interaction with that module to avoid unwanted results
+import os,tempfile
+os.environ['MPLCONFIGDIR'] = tempfile.mkdtemp()
+
 from mod_python import Session
 
 from time import time
 
 from evident.demo import demo
-from evident.subsampling import select_samples
-from evident.pcoa import generate_pcoa_cloud_from_point_in_omega, make_pcoa_webgl_string_from_files
-from evident.rarefaction import generate_alpha_rarefaction_plots_from_point_in_omega
 from evident.error import raiseApacheError
+from evident.subsampling import select_samples
+from evident.pcoa import (generate_pcoa_cloud_from_point_in_omega,
+    make_pcoa_webgl_string_from_files)
+from evident.rarefaction import (build_color_preferences,
+    generate_alpha_rarefaction_data_from_point_in_omega)
 
 from biom.parse import parse_biom_table
 from biom.exception import TableException
 from qiime.filter import filter_mapping_file
+from qiime.make_rarefaction_plots import make_averages
 from qiime.parse import parse_newick, parse_mapping_file, parse_coords
 
 from StringIO import StringIO
@@ -48,8 +56,8 @@ import logging
 req.write("")
 
 def getjsdata():
-	req.write(jsdata)
-	
+    req.write(jsdata)
+
 def create_emperor_output(data):
     # Emperor
     req.write(open('/evident/www/emperor/emperor_head.html','U').read())
@@ -64,61 +72,75 @@ max_iterations = 10
 min_sequences  = 10
 
 # Reading / parsing some values
-iterations = int(req.form['iterations'])
+iterations = session['iterations']
 viz = req.form['viz']
 
 # Validating that number of iterations
 if max_iterations<iterations:
-	raiseApacheError('<b>Sorry we can not process more than %s iterations.</b>' % (max_iterations))
+    raiseApacheError('<b>Sorry we can not process more than %s iterations.</b>' % (max_iterations))
 
 # Creating full paths to files
-mapping_fp	= '/evident/data/' + session['filename'] + '_map.txt'
-tree_fp		= '/evident/data/gg_97_otus_4feb2011.tre'
-pcoa_fp		= '/evident/data/' + session['filename'] + '_unweighted_unifrac_pc.txt'
+mapping_fp = '/evident/data/' + session['filename'] + '_map.txt'
+pcoa_fp = '/evident/data/' + session['filename'] + '_unweighted_unifrac_pc.txt'
 alpha_stddev_fp = '/evident/data/' + session['filename'] + '_alpha_stddev.html'
 alpha_stderr_fp = '/evident/data/' + session['filename'] + '_alpha_stderr.html'
 
-tree_object = parse_newick(open(tree_fp))
-
-
-# Choosing visualization
+# not demo, live user interaction
 if session['demo']!="true":
+
+    # the gg tree is only loaded if it wasn't loaded in lib.psp
+    if session['tree_object'] == None:
+        tree_fp = '/evident/data/gg_97_otus_4feb2011.tre'
+        tree_object = parse_newick(open(tree_fp))
+    else:
+        tree_object = session['tree_object']
+
     mapping_file_tuple = session['mapping_file_tuple']
     filtered_biom_table = parse_biom_table(StringIO(session['filtered_biom_table']))
+
+    # principal coordinates analysis plots
     if viz=='pcoa':
         try:
             webgl_string = generate_pcoa_cloud_from_point_in_omega(
-										mapping_file_tuple=mapping_file_tuple,
-										biom_object=filtered_biom_table,
-										metric='unifrac',
-										sequences=session['sequences'],
-										iterations=iterations,
-										axes=3,
-										tree_object=tree_object)
+                mapping_file_tuple=mapping_file_tuple,
+                biom_object=filtered_biom_table, metric='unifrac',
+                sequences=session['sequences'], iterations=iterations, axes=3,
+                tree_object=tree_object)
         except ValueError:
             raiseApacheError('<b>Could not create the PCoA plot, the ellipsoids were not created succesfully</b>')
         create_emperor_output(webgl_string)
+
+    # alpha rarefaction plots
     elif viz=='alpha_stddev' or viz=='alpha_stderr':
         min_depth = 10
         if session['sequences']==min_depth:
             raiseApacheError('The min number of sequences for alpha diversity is 15, so you need to select at least this number')
-        html_string = generate_alpha_rarefaction_plots_from_point_in_omega(
-			mapping_file_tuple=mapping_file_tuple,
-			biom_object=filtered_biom_table,
-			metrics=['observed_species','Chao1', 'PD_whole_tree'],
-			sequences=session['sequences'],
-			iterations=iterations,
-			tree_object=tree_object, std_type=viz[6:])
+
+        # create all the coloring data for the alpha rarefaction plots
+        prefs, data, background_color, label_color = build_color_preferences(
+            mapping_file_tuple)
+
+        # make the rarefaction plots and print it to the screen
+        html_string = make_averages(prefs, data, background_color, label_color,
+            session['alpha_rarefaction_data'], 'dummy_fp', 75, 'png', None,
+            False, viz[6:], 'memory')
         req.write(html_string)
+
     else:
         raiseApacheError('Visualization <u>%s</u> does not exist' % viz)
+
+# demos
 else:
+    # principal coordinates analysis plots
     if viz=='pcoa':
         map_data, map_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
         pcoa_headers, points, eigvals, pct_var = parse_coords(open(pcoa_fp,'U'))
 
-        webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points, pct_var, map_headers, map_data)
+        webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points,
+            pct_var, map_headers, map_data)
         create_emperor_output(webgl_string)
+
+    # alpha rarefaction plots
     elif viz=='alpha_stddev' or viz=='alpha_stderr':
         if viz == 'alpha_stddev':
             html_string = '\n'.join(open(alpha_stddev_fp,'U').readlines())
