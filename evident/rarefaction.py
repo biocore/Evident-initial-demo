@@ -160,8 +160,12 @@ def generate_alpha_rarefaction_data_from_point_in_omega(biom_object, metrics,
 	tree_object: tree to perform the phylogenetic operations, default is None
 
 	Output:
-	alpha_rarefaction_data: The is rarefaction data in a format compatible with
-	make_averages (see qiime.make_rarefaction_plots)
+	alpha_rarefaction_data: dictionary where the keys are alpha diversity
+	metrics and the values are tuples; in these tuples the first element is a
+	list of column headers for an alpha diversity file, the second element is a
+	list of row headers for an alpha diversity file and the third element is a
+	list of lists containing the alpha diversity data computed at multiple
+	rarefaction depths and as many iterations as specified.
 	"""
 	# The minimum depth is defined by the size of the maximum depth
 	steps = 4
