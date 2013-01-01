@@ -1,16 +1,25 @@
 <%
-from mod_python import Session
-import os
+__author__ = "Antonio Gonzalez Pena"
+__copyright__ = "Copyright 2011-2012, Evident"
+__credits__ = ["Antonio Gonzalez Pena", "Yoshiki Vazquez Baeza"]
+__license__ = "GPL"
+__version__ = "0.1.dev"
+__maintainer__ = ["Antonio Gonzalez Pena"]
+__email__ = "antgonza@gmail.com"
+__status__ = "Development"
 
-from qiime.parse import parse_mapping_file
+from mod_python import Session
+
 from qiime.filter import filter_mapping_file
 from qiime.format import format_biom_table
+from qiime.parse import parse_mapping_file, parse_newick
 
 from biom.parse import parse_biom_table
 from biom.exception import TableException
 
-from evident.subsampling import select_samples
 from evident.error import raiseApacheError
+from evident.subsampling import select_samples
+from evident.rarefaction import generate_alpha_rarefaction_data_from_point_in_omega
 
 class EvidentLib:
 
@@ -18,26 +27,27 @@ class EvidentLib:
         studies = {}
         studydata = open('evident/data/studies.txt').readlines()
         studydata = studydata[1:]
-    
+
         # Writting JS headers
         jslines = "{'demo':{"
-        
+
         for row in studydata:
             if row.startswith("#") or len(row)==0:
                continue
             vals = row.strip().split("\t")
             jslines += "'%s': ['%s']," % (vals[1],vals[3])
         jslines += "}, 'full':{"
-        
+
         for row in studydata:
             if row.startswith("#") or len(row)==0:
                continue
             vals = row.strip().split("\t")
-        
+
             # opening selectors
             selectors = open("evident/data/%s_selectors.txt" % vals[1], "U").read().replace("\n","?")
-        
+
             jslines += "'%s': ['%s','%s']," % (vals[1],vals[0],selectors)
+
         jslines = jslines[:-1]
         jslines += '}}'
         req.write(jslines)
@@ -45,13 +55,21 @@ class EvidentLib:
 
     def subsample(self):
         session = Session.Session(req)
-        
+
+        # loading the gg tree can take a while; load it when alpha is selected
+        session['tree_object'] = None
+
         session['study'] = req.form['study']
         session['sequences'] = int(req.form['sequences'])
         session['demo'] = req.form['demo']
+        session['iterations'] = int(req.form['iterations'])
         subjects = int(req.form['subjects'])
         samples = int(req.form['samples'])
-        
+
+        session['pcoa'] = req.form['pcoa']
+        session['alpha_stddev'] = req.form['alpha_stddev']
+        session['alpha_stderr'] = req.form['alpha_stderr']
+
         # Validating arguments
         study = {}
         for i,line in enumerate(open('/evident/data/studies.txt')):
@@ -62,52 +80,58 @@ class EvidentLib:
                 study['name'] = line[0]
                 session['filename'] = line[1]
                 study['subject_column'] = line[2]
-                
+
         # If the study couldn't be found or parsed
         if study == {}:
             raiseApacheError('<b>Study <u>%s</u> does not exist.</b>' % form_input['study'])
-            
+
         # Creating full paths to files
-        mapping_fp	= '/evident/data/' + session['filename'] + '_map.txt'
-        biom_fp		= '/evident/data/' + session['filename'] + '.biom'
-        alpha_fp	= '/evident/data/' + session['filename'] + '_alpha.html'
-        
+        mapping_fp = '/evident/data/' + session['filename'] + '_map.txt'
+        biom_fp = '/evident/data/' + session['filename'] + '.biom'
+        alpha_fp = '/evident/data/' + session['filename'] + '_alpha.html'
+
         if session['demo']!="true":
             map_data, headers, comments = parse_mapping_file(open(mapping_fp, 'U'))
             biom_table = parse_biom_table(open(biom_fp, 'U'))
-           
+
             try:
                 # select only samples that meet ther criteria
                 chosen_samples, filtered_biom_table = select_samples(map_data, headers, biom_table, session['sequences'], study['subject_column'], subjects, samples)
                 # check if we have enough samples to display a PCoA plot
                 if len(chosen_samples) < 3:
                     raiseApacheError('<b>At least <u>three</u> data-points are needed: try changing the values of Subjects or Samples per Subject.</b>')
-                    
+
                 session['chosen_samples'] = chosen_samples
                 session['filtered_biom_table'] = format_biom_table(filtered_biom_table)
             except TableException:
                 raiseApacheError('<b>There are <u>not enough</u> subjects in this study: check your BIOM file and Mapping File have equal number of samples.</b>')
-                
-            
+
             # get the non redundant columns of the mapping file
             interesting_headers, interesting_data = filter_mapping_file(map_data, headers, chosen_samples)
+
+            # specific to alpha diversity visualizations
+            if session['alpha_stddev'] or session['alpha_stderr']:
+                tree_fp = '/evident/data/gg_97_otus_4feb2011.tre'
+                session['tree_object'] = parse_newick(open(tree_fp))
+
+                session['alpha_rarefaction_data'] = generate_alpha_rarefaction_data_from_point_in_omega(biom_object=filtered_biom_table, metrics=['observed_species','Chao1','PD_whole_tree'], sequences=session['sequences'], iterations=session['iterations'], tree_object=session['tree_object'])
+
+        # demo
         else:
             interesting_data, interesting_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
             session['interesting_headers'] = interesting_headers
             session['interesting_data'] = interesting_data
-        
+
         session['mapping_file_tuple'] = (interesting_data, interesting_headers)
 
         session.save()
-        
-        
+
     def saveSVG(self):
         SVGcontent = req.form['SVGdata']
         fname = 'exports/test.svg'
         open('evident/www/'+fname,'w').write(SVGcontent)
         req.write("'"+fname+"'")
-    
-    
+
     def test(self):
         req.write("{'hurf':'durf','data':['cat','dog','rabbit']}" )
 

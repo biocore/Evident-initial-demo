@@ -21,7 +21,6 @@ from qiime.alpha_diversity import *
 from qiime.colors import process_colorby
 from qiime.rarefaction import RarefactionMaker
 from qiime.collate_alpha import make_output_row
-from qiime.make_rarefaction_plots import make_averages
 from qiime.parse import parse_matrix, parse_rarefaction
 
 import logging
@@ -148,26 +147,25 @@ def _format_rarefactions(rarefaction_data, samples):
 
 	return output
 
-def generate_alpha_rarefaction_plots_from_point_in_omega(mapping_file_tuple,
-														biom_object, metrics, 
-														sequences, iterations, 
-														tree_object=None, 
-														std_type='stddev'):
-	"""generate alpha rarefaction plots from a biom table and mapping file
+def generate_alpha_rarefaction_data_from_point_in_omega(biom_object, metrics,
+													sequences, iterations,
+													tree_object=None):
+	"""generate alpha rarefaction data from a biom table and mapping file
 
 	Inputs:
-	mapping_file_tuple: mapping file data and headers in a tuple (data, headers)
-	biom_object: OTU table in a biom format corresponding to mapping_file_tuple
+	biom_object: OTU table to be rarefied and used to compute alpha diversity
 	metrics: list of metrics, phylogenetic or non phylogenetic
 	sequences: maximum number of sequences for the rarefaction plots
 	iterations: number of repetitions per rarefaction
 	tree_object: tree to perform the phylogenetic operations, default is None
-	std_type: calculation to perform for the error bars, can be standard
-	deviation (stddev) or standard error (stderr), default is stddev 
 
-	Outputs:
-	html_string: HTML formatted string with the rarefaction plots for the given
-	parameters
+	Output:
+	alpha_rarefaction_data: dictionary where the keys are alpha diversity
+	metrics and the values are tuples; in these tuples the first element is a
+	list of column headers for an alpha diversity file, the second element is a
+	list of row headers for an alpha diversity file and the third element is a
+	list of lists containing the alpha diversity data computed at multiple
+	rarefaction depths and as many iterations as specified.
 	"""
 	# The minimum depth is defined by the size of the maximum depth
 	steps = 4
@@ -203,14 +201,6 @@ def generate_alpha_rarefaction_plots_from_point_in_omega(mapping_file_tuple,
 		metrics_data[metric] = per_metric_data
 
 	# now format the dictionary to make it compatible with make_averages
-	rares = _format_rarefactions(metrics_data, all_samples)
+	alpha_rarefaction_data = _format_rarefactions(metrics_data, all_samples)
 
-	# create all the coloring data for the alpha rarefaction plots
-	prefs, data, background_color, label_color = build_color_preferences(\
-		mapping_file_tuple)
-
-	# build the png data and create the html output
-	html_output = make_averages(prefs, data, background_color, label_color,\
-		rares, 'dummy_fp', 75, 'png', None, False, std_type, 'memory')
-
-	return html_output
+	return alpha_rarefaction_data
