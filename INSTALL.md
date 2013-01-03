@@ -1,5 +1,7 @@
 # Installation
 
+These instructions are for installing Evident natively. If you are looking for the fastest way to start using Evident check the [virtual machine install instructions](INSTALL_VIRTUAL_MACHINE.md).
+
 E-vident is written in [Python][], using [QIIME][] as a base framework and the [Apache][] HTTP Server. The following installation instructions assume all of these dependencies to be correctly installed.
 
 Clone the E-vident repository from the GitHub repository site:
