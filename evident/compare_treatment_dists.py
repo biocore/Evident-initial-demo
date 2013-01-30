@@ -36,7 +36,7 @@ def between_treatments_dist(group_t1, group_t2, marginal_ids, distmat):
     g2 = [marginal_ids.index(i) for i in group_t2]
     d = distmat.take(g1,0).take(g2,1)
     return d.mean(), d.std()/d.size
-    
+
 def treatment_dist(group, marginal_ids, distmat):
     """Calc avg dist, se between group and all other samples in distmat.
     Notes:
@@ -114,6 +114,15 @@ def compare_treatment_dists(chosen_samples, category, mf, bt, m, tr):
      bt - biom table containing at least all samples contained in the mf.
      m - str, metric to used for beta diversity calculation. 
      tr - tree object, containing at least all nodes in bt.
+    Output:
+     A list of marginals that are the treatments of the groups, i.e. ['HF','LF']
+     bt_wi_m - a 2d upper triangular array that has the average distances
+     between treatment groups (or in the case of the main diagonal, the average
+     within treatment/group distance).
+     bt_wi_se - the standard errors for bt_wi_m.
+     ta_m_se - 2d array with number of treatments/groups rows, and 2 cols where 
+     the first col is the average distance between that treatment and all others
+     and the second col is the se. 
     """
     dm = single_object_beta(bt, m, tr) #make the sample-sample distance matrix
     samples, data = parse_distmat(dm) #parse dm which is list of strs
