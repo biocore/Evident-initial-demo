@@ -11,14 +11,12 @@ __maintainer__ = "Will Van Treuren"
 __email__ = "wdwvt1@gmail.com"
 __status__ = "Development"
 
-
-from numpy import arange, mean, eye, nan, zeros, std
+from numpy import arange, eye, nan, zeros
 from qiime.beta_diversity import single_object_beta
 from qiime.parse import parse_distmat
 from numpy.ma import masked_array
 from numpy.ma.core import MaskedConstant
 from itertools import combinations
-
 
 def between_treatments_dist(group_t1, group_t2, marginal_ids, distmat):
     """Calculate avg dist, se between treatment 1 and treatment 2 sample groups.
