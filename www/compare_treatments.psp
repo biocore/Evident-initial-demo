@@ -1,0 +1,44 @@
+<%
+#!/usr/bin/env python
+# File created on 29 Jan 2013
+
+
+__author__ = "Will Van Treuren"
+__copyright__ = "Copyright 2013, The Evident Project"
+__credits__ = ["Will Van Treuren"]
+__license__ = "GPL"
+__version__ = "1.6.0-dev"
+__maintainer__ = "Will Van Treuren"
+__email__ = "wdwvt1@gmail.com"
+__status__ = "Development"
+
+from mod_python import Session
+from evident.compare_treatment_dists import (between_treatments_dist, 
+    treatment_dist, treatment_covering, within_treatment_dist, 
+    compare_treatment_dists)
+from biom.parse import parse_biom_table
+from StringIO import StringIO
+from qiime.parse import mapping_file_to_dict
+
+
+category = req.form['category']
+iterations = req.form['iterations']
+distance_metric = 'unweighted_unifrac'
+mapping_file = mapping_file_to_dict(session['mapping_file_tuple'][0], session['mapping_file_tuple'][1])
+
+marginals, bt_wi_m, bt_wi_se, ta_m_se = compare_treatment_dists(
+    chosen_samples=session['chosen_samples'], 
+    category=category,
+    mf=mapping_file, 
+    bt=parse_biom_table(StringIO(session['filtered_biom_table'])),
+    m=distance_metric,
+    tr=session['tree_object'])
+
+req.write(str(marginals))
+req.write(str(bt_wi_m))
+req.write(str(bt_wi_se))
+req.write(str(ta_m_se))
+
+req.write(str(treatment_covering(session['chosen_samples'], category, mapping_file)))
+
+%>

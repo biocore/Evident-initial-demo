@@ -83,17 +83,19 @@ def within_treatment_dist(group, marginal_ids, distmat):
 def treatment_covering(sids, category, mf):
     """Return dict of treatment to sample id list for sample id in sids.
     Notes:
-     sids - list of lists coming from session['chosen_samples'], sample ids.
-     e.g [[sam1,sam4,sam7],[sam3,sam6],...]
+     sids - list coming from session['chosen_samples'], sample ids.
+     e.g [sam1,sam4,sam7,sam3,sam6,...]
      category - str, category under the mf that samples are to be comapred on.
      mf - parsed mapping file, dict of sample_id:metadata.
      output - {treatment:[list of samples in sids who have that value]}
     """
     # Yoshiki found a more elegant way than chain:
     # list(set([mf[i][category] for i in list(chain.from_iterable(sids))]))
-    flat_sids = sum(sids,[])
-    treatments = list(set([mf[i][category] for i in flat_sids]))
-    return {t:[i for i in flat_sids if mf[i][category]==t] for t in treatments}
+    # the new version of evident appears not to five sids as a single list
+    # flat_sids = sum(sids,[])
+    # treatments = list(set([mf[i][category] for i in flat_sids]))
+    treatments = list(set([mf[i][category] for i in sids]))
+    return {t:[i for i in sids if mf[i][category]==t] for t in treatments}
 
 def compare_treatment_dists(chosen_samples, category, mf, bt, m, tr):
     """Calculate avg between, within, and to-all distances for chosen_samples.
@@ -106,7 +108,7 @@ def compare_treatment_dists(chosen_samples, category, mf, bt, m, tr):
      single group. the to-all distance is the distance from the group to all
      other samples in the distmat.
     Inputs:
-     chosen_samples - list of lists of ids. e.g. [[sam1,sam7],[sam3,sam6,..],..]
+     chosen_samples - list of ids. e.g. [sam1,sam7,sam3,sam6,..]
      category - str, field in mf.
      mf - parsed mapping file, dict of sample_id:metadata.
      bt - biom table containing at least all samples contained in the mf.

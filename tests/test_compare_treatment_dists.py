@@ -132,7 +132,9 @@ class compare_treatments(TestCase):
 
     def test_treatment_covering(self):
         """Tests treatment covering returns the correct data."""
-        sids = [['a1', 'a2'], ['c1'], ['d1', 'd2', 'd3']]
+        #sids = [['a1', 'a2'], ['c1'], ['d1', 'd2', 'd3']]
+        sids = ['a1', 'a2', 'c1', 'd1', 'd2', 'd3']
+        
         mf = \
             {'a1': {'Diet': 'LF', 'HSID': 'a', 'Pref': '1'},
              'a2': {'Diet': 'LF', 'HSID': 'a', 'Pref': '1'},
@@ -154,7 +156,7 @@ class compare_treatments(TestCase):
         exp = {'1': ['a1', 'a2', 'd2', 'd3'], '2': ['d1'], '5': ['c1']}
         self.assertEqual(exp , treatment_covering(sids, 'Pref', mf))
         # test with a single sample
-        sids = [['a1']]
+        sids = ['a1']
         exp = {'1': ['a1']}
         self.assertEqual(exp , treatment_covering(sids, 'Pref', mf))
 
@@ -178,6 +180,8 @@ class compare_treatments(TestCase):
         tr = DndParser('(((O1:0.06,O2:0.1)A:0.031,(O3:0.001,O4:0.01)B:0.2)AB:0.4,((O5:0.03,O6:0.02)C:0.13,(O7:0.01,O8:0.005)D:0.1)CD:0.3)root;')
         # test known quantitiy 
         sids = [['a1', 'a2'], ['c1'], ['d1', 'd2', 'd3']]
+        sids = ['a1', 'a2','c1', 'd1', 'd2', 'd3']
+        
         exp_out = (['LF', 'HF'],
             array([[ 0.11071343,  0.07019723],
                [ 0.        ,  0.06787341]]),
