@@ -17,7 +17,8 @@ import os,tempfile
 os.environ['MPLCONFIGDIR'] = tempfile.mkdtemp()
 
 from math import ceil
-from qiime.alpha_diversity import *
+from qiime.alpha_diversity import get_nonphylogenetic_metric, get_phylogenetic_metric, \
+     AlphaDiversityCalc, AlphaDiversityCalcs
 from qiime.colors import process_colorby
 from qiime.rarefaction import RarefactionMaker
 from qiime.collate_alpha import make_output_row
