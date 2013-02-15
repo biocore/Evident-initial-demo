@@ -3,7 +3,7 @@
 These instructions are to set up a virtual machine as a web server where Evident will be running. To access Evident you need to use the [Google Chrome](https://www.google.com/chrome) web browser in your real machine. Basically, you only need to start the virtual machine when you will use Evident and you access it using Chrome from your machine.
 
 ## Downloads and Installing
-Make sure you have VirtualBox installed in your machine, if not download it and install it from here: [VirtualBox](https://www.virtualbox.org/wiki/Downloads); then download and uncompress this file: [Evident Virtual Machine](ftp://thebeast.colorado.edu/pub/evident-snapshop-VMs/Evident.vdi_100312.tgz) [~ 2GB]
+Make sure you have VirtualBox installed in your machine, if not download it and install it from here: [VirtualBox](https://www.virtualbox.org/wiki/Downloads); then download and uncompress this file: [Evident Virtual Machine](ftp://thebeast.colorado.edu/pub/evident-snapshop-VMs/) [~ 2GB]
 
 To install the virtual hard drive:
 
