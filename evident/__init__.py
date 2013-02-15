@@ -12,7 +12,7 @@ __status__ = "Development"
 __all__ = ['subsampling','map_sample_space']
 
 import logging
-from os import chmod
+from os import chmod, environ
 
 # if level is set to DEBUG log messages will be written
 logging.basicConfig(filename='/tmp/e-vident.log', level=logging.DEBUG, \
@@ -23,3 +23,6 @@ try:
     chmod('/tmp/e-vident.log',0777)
 except:
     pass
+
+# performance get's affected by the biom backend used, forced to use SparseMat
+environ['BIOM_CONFIG_FP'] = '/evident/data/biom_config'
