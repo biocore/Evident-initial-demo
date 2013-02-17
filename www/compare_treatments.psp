@@ -1,0 +1,59 @@
+<%
+#!/usr/bin/env python
+# File created on 29 Jan 2013
+
+
+__author__ = "Will Van Treuren"
+__copyright__ = "Copyright 2013, The Evident Project"
+__credits__ = ["Will Van Treuren"]
+__license__ = "GPL"
+__version__ = ".9-dev"
+__maintainer__ = "Will Van Treuren"
+__email__ = "wdwvt1@gmail.com"
+__status__ = "Development"
+
+from mod_python import Session
+from evident.compare_treatment_dists import (between_treatments_dist, 
+    treatment_dist, treatment_covering, within_treatment_dist, 
+    compare_treatment_dists)
+from biom.parse import parse_biom_table
+from StringIO import StringIO
+from qiime.parse import mapping_file_to_dict
+from qiime.rarefaction import get_rare_data
+from numpy.ma import masked_invalid, average
+
+category = req.form['category']
+iterations = req.form['iterations']
+distance_metric = 'unweighted_unifrac'
+mapping_file = mapping_file_to_dict(session['mapping_file_tuple'][0],
+    session['mapping_file_tuple'][1])
+
+bt_wi_m_list, bt_wi_se_list, ta_m_se_list = [], [], []
+
+for i in range(int(iterations)): #
+    biom = get_rare_data(parse_biom_table(StringIO(session['filtered_biom_table'])),
+        session['sequences'])
+
+    marginals, bt_wi_m, bt_wi_se, ta_m_se = compare_treatment_dists(
+        chosen_samples=session['chosen_samples'], category=category,
+        mf=mapping_file, bt=biom, m=distance_metric,
+        tr=session['tree_object'])
+
+    bt_wi_m_list.append(bt_wi_m)
+    bt_wi_se_list.append(bt_wi_se)
+    ta_m_se_list.append(ta_m_se)
+
+# mask invalid entries while averaging so that if we get nans they don't pollute
+# all iterations. 0 implies average over last axis.
+bt_wi_m_avg = average(bt_wi_m_list,0)
+bt_wi_se_avg = average(bt_wi_se_list,0)
+ta_m_se_avg = average(ta_m_se_list,0)
+
+req.write(str(marginals))
+req.write('<br>')
+req.write(str(bt_wi_m_avg))
+req.write('<br>')
+req.write(str(bt_wi_se_avg))
+req.write('<br>')
+req.write(str(ta_m_se_avg))
+%>
