@@ -34,10 +34,24 @@ qiime_config = load_qiime_config()
 options_lookup = get_options_lookup()
 
 script_info = {}
-script_info['brief_description'] = ""
-script_info['script_description'] = ""
-script_info['script_usage'] = [("","","")]
-script_info['output_description']= ""
+script_info['brief_description'] = "Processes a biom and mapping file downloaded from " +\
+    "the QIIME database to be added to Evident"
+script_info['script_description'] = """This script takes a biom and mapping file \
+downloaded from the database, together with how many sequences per sample and the \
+subject id in the mapping file and processes the study to be added to Evident."""
+script_info['script_usage'] = [("Process a new study","""To process a new study you need \
+to download a study from the database, biom and mapping file, select a rarefaction level \
+to perform the analyses, and define the column in the mapping file that has the unique \
+identifier of the subjects (for example: HOST_SUBJECT_ID) and then run the following \
+command:""", """%prog -i otu_table.biom -m mapping_file.txt -o processed_study -e 1000 \
+-s HOST_SUBJECTY""")]
+script_info['script_usage'].append(("Process a new study in parallel","""To process a \
+study in parallel, using 10 jobs, you can use this command:""", """%prog -i \
+otu_table.biom -m mapping_file.txt -o processed_study -e 1000 -s HOST_SUBJECTY -aO 10"""))
+script_info['output_description']="""The script creates a raw.biom (original file), \
+an even sampled biom file, a selectors.txt file that contains information of how evident \
+should behave in the main GUI, a cleaned mapping file, a study_preference file that has \
+some basic information about the study, and alpha & beta calculations. """
 script_info['required_options'] = [\
  make_option('-i','--otu_table_fp',type='existing_filepath',
             help='the input biom table [REQUIRED]'),

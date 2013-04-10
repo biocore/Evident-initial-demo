@@ -22,10 +22,21 @@ from datetime import datetime
 options_lookup = get_options_lookup()
 
 script_info = {}
-script_info['brief_description'] = ""
-script_info['script_description'] = ""
-script_info['script_usage'] = [("","","")]
-script_info['output_description']= ""
+script_info['brief_description'] = "Add a study to Evident"
+script_info['script_description'] ="""This script takes a folder created by \
+process_new_study.py and adds the study into Evident. It validates the presence of the\
+files but not their validity.
+
+Note: If you use the name of an existing study, the script will replace this.
+"""
+
+script_info['script_usage'] = [("Add a study using the defaults","",
+'%prog -i crawford_preprocessed/ -s "Crawford et al. 2009 - mice fasting"')]
+script_info['script_usage'].append(("Add a study and forcing the output","",
+'%prog -i crawford_preprocessed/ -s "Crawford et al. 2009 - mice fasting" -f'))
+
+script_info['output_description']= """The script doesn't have a direct output but will \
+add a new study to Evident"""
 script_info['required_options'] = [\
  make_option('-i','--input_path',type='existing_path',
             help='the input folder, the result of process_new_study.py [REQUIRED]'),
