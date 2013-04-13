@@ -27,6 +27,7 @@ from qiime.util import load_qiime_config, parse_command_line_parameters, get_opt
 from qiime.format import format_biom_table, format_mapping_file
 from evident.map_sample_space import get_sorted_counts_per_sample, make_selectors
 from os import makedirs
+from os.path import join
 from numpy import inf
 from shutil import copyfile
 
@@ -68,16 +69,15 @@ script_info['optional_options'] = [\
         help='path to the tree file [default: %default]',
         default="/evident/data/gg_97_otus_4feb2011.tre"),
  make_option('-p','--parameter_fp',type='existing_filepath',
-    help='path to the parameter file, which specifies changes'+\
-        ' to the default behavior. '+\
-        'See http://www.qiime.org/documentation/file_formats.html#qiime-parameters .'+\
+    help='path to the parameter file, which specifies changes to the default behavior. '\
+        'See http://www.qiime.org/documentation/file_formats.html#qiime-parameters .'\
         ' [if omitted, default values will be used]'),
  make_option('-f','--force',action='store_true',
-        dest='force',help='Force overwrite of existing output directory'+\
-        ' (note: existing files in output_dir will not be removed)'+\
+        dest='force',help='Force overwrite of existing output directory'\
+        ' (note: existing files in output_dir will not be removed)'\
         ' [default: %default]'),
  make_option('-w','--print_only',action='store_true',
-        dest='print_only',help='Print the commands but don\'t call them -- '+\
+        dest='print_only',help='Print the commands but don\'t call them -- '\
         'useful for debugging [default: %default]',default=False),
  make_option('-a','--parallel',action='store_true',
         dest='parallel',default=False,
@@ -127,9 +127,9 @@ def main():
         biom_table.SampleIds, include_repeat_cols=False)
 
     if subject_category not in real_map_headers:
-        raise ValueError, 'This column: %s is not in the mapping file, try %s'%\
-            (subject_category, real_map_headers)
-
+        option_parser.error('This column: %s is not in the mapping file, try %s'%\
+            (subject_category, real_map_headers))
+ 
     sorted_counts_per_sample = get_sorted_counts_per_sample(biom_table)
 
     mapping_file_tuple = (real_map_data, real_map_headers)
@@ -138,17 +138,17 @@ def main():
     results, main_map_cat = make_selectors(sorted_counts_per_sample, min_seqs_sample,\
         mapping_file_tuple, subject_category, verbose=verbose)
 
-    fout = open(output_dir + '/selectors.txt','w')
+    fout = open(join(output_dir,'selectors.txt'),'w')
     fout.write('#Sequences\tSubjects\tSamples\tMetadata\n')
     fout.write('\n'.join(results))
     fout.close()
     
-    fout = open(output_dir + '/mapping_file.txt','w')
+    fout = open(join(output_dir,'mapping_file.txt'),'w')
     fout.write(format_mapping_file(real_map_headers, real_map_data))
     fout.close()
     ## ******************** make_evident_selectors ********************
 
-    fout = open(output_dir + '/study_preferences.txt','w')
+    fout = open(join(output_dir,'study_preferences.txt'),'w')
     fout.write('%d\n' % seqs_per_sample)
     fout.write('%s\n' % subject_category)
     fout.close()
@@ -156,7 +156,7 @@ def main():
     ## ******************** filter_samples_from_otu_table ********************
     ## Filtering original biom file to only have samples above the max length to avoid
     ## ugly plots
-    alpha_biom_file = output_dir + '/filtered_otu_table_for_alpha.biom'
+    alpha_biom_file = join(output_dir,'filtered_otu_table_for_alpha.biom')
     fout = open(alpha_biom_file,'w')
     sample_ids_to_keep = biom_table.SampleIds
     filtered_otu_table = filter_samples_from_otu_table(biom_table,
@@ -171,15 +171,14 @@ def main():
         try:
             parameter_f = open(opts.parameter_fp, 'U')
         except IOError:
-            raise IOError,\
-             "Can't open parameters file (%s). Does it exist? Do you have read access?"\
-             % opts.parameter_fp
+            option_parser.error("Can't open parameters file (%s). Does it exist? " \
+            "Do you have read access?" % opts.parameter_fp)
         params = parse_qiime_parameters(parameter_f)
         parameter_f.close()
     else:
         params = parse_qiime_parameters(
             ['beta_diversity:metrics unweighted_unifrac',\
-             'make_rarefaction_plots:prefs_path %s' % output_dir + '/prefs.txt',
+             'make_rarefaction_plots:prefs_path %s' % join(output_dir,'prefs.txt'),
              'make_rarefaction_plots:colorby %s' % ','.join(main_map_cat), 
              'make_rarefaction_plots:output_type memory', 
              'multiple_rarefactions:min %d' % int(seqs_per_sample/4),
@@ -208,7 +207,7 @@ def main():
     else:
         status_update_callback = no_status_updates
     
-    copyfile(otu_table_fp, output_dir + '/raw.biom')
+    copyfile(otu_table_fp, join(output_dir,'raw.biom'))
     
     run_beta_diversity_through_plots(otu_table_fp=otu_table_fp,
      mapping_fp=mapping_fp,
@@ -225,7 +224,7 @@ def main():
      suppress_2d_plots=True,
      status_update_callback=status_update_callback)
     
-    output_dir = output_dir + '/alpha'
+    output_dir = join(output_dir,'alpha')
     run_alpha_rarefaction(otu_table_fp=alpha_biom_file,\
      mapping_fp=mapping_fp,\
      output_dir=output_dir,\
