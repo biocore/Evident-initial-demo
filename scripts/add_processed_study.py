@@ -109,7 +109,7 @@ def main():
     
     content = {}
     for i,line in enumerate(open(join(opts.output_path, 'studies.txt'),'U')):
-        line = line[:-1].split('\t')
+        line = line.strip().split('\t')
         if i==0:
             headers = line
         else:
