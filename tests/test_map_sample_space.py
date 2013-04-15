@@ -60,14 +60,16 @@ class TopLevelTests(TestCase):
         # test with the tutorial dataset
         result_lines = make_selectors(self.sorted_counts_per_sample, 100,\
             self.mapping_file_tuple, 'Description')
-        self.assertEquals(result_lines, ['146\t9\t1\tBarcodeSequence,Treatment,DOB',\
+        self.assertEquals(result_lines, (['146\t9\t1\tBarcodeSequence,Treatment,DOB',\
             '147\t8\t1\tNone', '148\t7\t1\tNone', '149\t6\t1\tNone',\
-            '150\t5\t1\tNone'])
+            '150\t5\t1\tNone'], ['SampleID', 'BarcodeSequence', 'Treatment', 'DOB',\
+            'Description']))
 
         result_lines = make_selectors(self.sorted_counts_per_sample, 148,\
             self.mapping_file_tuple, 'Description')
-        self.assertEquals(result_lines, ['148\t9\t1\tBarcodeSequence,Treatment,DOB',\
-            '149\t8\t1\tNone', '150\t7\t1\tNone'])
+        self.assertEquals(result_lines, (['148\t9\t1\tBarcodeSequence,Treatment,DOB',\
+            '149\t8\t1\tNone', '150\t7\t1\tNone'], ['SampleID', 'BarcodeSequence',\
+            'Treatment', 'DOB', 'Description']))
 
 mapping_file_data = [\
     ['PC.354','AGCACGAGCCTA','YATGCTGCCTCCCGTAGGAGT','Control','20061218','Control_mouse_I.D._354'],\

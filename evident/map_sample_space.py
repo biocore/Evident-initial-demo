@@ -128,6 +128,7 @@ def make_selectors(counts_per_sample, minimum, mapping_file_tuple,
             subj_val = number_of_subjects
             head_val = filtered_headers
             samp_sub = number_of_samples
+            main_map_cat = filtered_headers
         else:
             if head_val!=filtered_headers:
                 results.append('%d\t%d\t%d\t%s'%(int(depth),number_of_subjects,\
@@ -150,4 +151,4 @@ def make_selectors(counts_per_sample, minimum, mapping_file_tuple,
         except:
             pass
 
-    return results
+    return results, main_map_cat
