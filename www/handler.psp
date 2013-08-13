@@ -38,10 +38,9 @@ from time import time
 from evident.demo import demo
 from evident.error import raiseApacheError
 from evident.subsampling import select_samples
-from evident.pcoa import (generate_pcoa_cloud_from_point_in_omega,
-    make_pcoa_webgl_string_from_files)
 from evident.rarefaction import (build_color_preferences,
     generate_alpha_rarefaction_data_from_point_in_omega)
+from evident.pcoa import generate_pcoa_cloud_from_point_in_omega, make_pcoa_plot
 
 from biom.parse import parse_biom_table
 from biom.exception import TableException
@@ -57,13 +56,6 @@ req.write("")
 
 def getjsdata():
     req.write(jsdata)
-
-def create_emperor_output(data):
-    # Emperor
-    req.write(open('/evident/www/emperor/emperor_head.html','U').read())
-    req.write(data)
-    req.write(open('/evident/www/emperor/emperor.html','U').read())
-
 
 ####
 #### Main
@@ -100,16 +92,15 @@ if session['demo']!="true":
 
     # principal coordinates analysis plots
     if viz=='pcoa':
-        try:
-            webgl_string = generate_pcoa_cloud_from_point_in_omega(
-                mapping_file_tuple=mapping_file_tuple,
+        # try:
+        webgl_string = generate_pcoa_cloud_from_point_in_omega(
+                map_headers=mapping_file_tuple[1],
+                map_data=mapping_file_tuple[0],
                 biom_object=filtered_biom_table, metric='unifrac',
                 sequences=session['sequences'], iterations=iterations, axes=3,
                 tree_object=tree_object)
-        except ValueError:
-            raiseApacheError('<b>Could not create the PCoA plot, the ellipsoids were not created succesfully</b>')
-        create_emperor_output(webgl_string)
-
+        
+        req.write(webgl_string)
     # alpha rarefaction plots
     elif viz=='alpha_stddev' or viz=='alpha_stderr':
         min_depth = 10
@@ -134,19 +125,19 @@ else:
     # principal coordinates analysis plots
     if viz=='pcoa':
         map_data, map_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
-        pcoa_headers, points, eigvals, pct_var = parse_coords(open(pcoa_fp,'U'))
-
-        webgl_string = make_pcoa_webgl_string_from_files(pcoa_headers, points,
-            pct_var, map_headers, map_data)
-        create_emperor_output(webgl_string)
-
+        pcoa_headers, pcoa_values, eigenvalues, coords_pct = parse_coords(open(pcoa_fp,'U'))
+        
+        webgl_string = make_pcoa_plot(pcoa_headers, pcoa_values, eigenvalues, coords_pct, 
+            map_headers, map_data)
+        req.write(webgl_string)
+        
     # alpha rarefaction plots
     elif viz=='alpha_stddev' or viz=='alpha_stderr':
         if viz == 'alpha_stddev':
             html_string = '\n'.join(open(alpha_stddev_fp,'U').readlines())
         elif viz == 'alpha_stderr':
             html_string = '\n'.join(open(alpha_stderr_fp,'U').readlines())
-
+        
         req.write(html_string)
     else:
         raiseApacheError('Visualization <u>%s</u> does not exist' % viz)
