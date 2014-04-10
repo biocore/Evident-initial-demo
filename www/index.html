@@ -2,15 +2,15 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>E-vident</title>
-    <link rel="shortcut icon" href="favicon.ico" />
-	<link rel="stylesheet" type="text/css" href="css/jquery-ui2.css">
-	<link rel="stylesheet" type="text/css" href="css/e-vident.css">
-	<link rel="stylesheet" type="text/css" href="css/spectrum.css">
-<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
-<script type="text/javascript" src="js/jquery-ui-1.8.17.custom.min.js"></script>
-<script src="js/spectrum.js"></script>
-<script src="js/prettify.js"></script>
-<script type="text/javascript" src="js/e-vident.js"></script>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/jquery-ui2.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/e-vident.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/spectrum.css') }}">
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-1.7.1.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery-ui-1.8.17.custom.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/spectrum.js') }}"></script>
+<script src="{{ url_for('static', filename='js/prettify.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/e-vident.js') }}"></script>
 <script>
      if ($.browser.webkit && !!window.chrome) {
          /*
