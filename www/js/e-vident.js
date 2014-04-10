@@ -57,12 +57,13 @@ function addTab(tid, title, content) {
 		.addClass("ui-corner-bottom");
 }
 
-//function called when html is loaded to populate the study select box
-function load() {   
-    $.ajax({ url: 'lib.psp',
-                data: {fn: 'loadStudyData'},
-                success: loadStudyData});
-}
+// function called when html is loaded to populate the study select box
+function load() {
+    $.getJSON($SCRIPT_ROOT + '/_load_study_data', {}, function(data) {
+ //        document.getElementById('studycombobox').innerHTML = data.studydata
+         loadStudyData(data.result)
+       }); 
+ }
 
 function loadStudyData(response) {
     rs = eval('('+response+')')
@@ -224,27 +225,30 @@ $(function(){
         for(var i = 0; i < len; i++)
             $("#tabs").tabs("remove",0);
         
-        var loadinghtml = '<div><img id=\"loading\" class=\"loading\" src=\"./img/loading.gif\"></div>'
+        var loadinghtml = '<div><img id="loading" class="loading" src="www/img/loading.gif"></div>'
+
         addTab('Loading','loading',loadinghtml);
-        $.ajax({ url: 'lib.psp',
-                data: { fn: 'subsample', 
-                        study: document.getElementById('studycombobox')[document.getElementById('studycombobox').selectedIndex].value,
-                        subjects: $("#subjectslider").slider("value"),
-                        samples:  $("#sampleslider").slider("value"),
-                        sequences: $("#sequenceslider").slider("value"),
-                        iterations: $("#iterationslider").slider("value"),
-                        demo: document.visualizations[0].checked,
-                        pcoa: document.visualizations[1].checked,
-                        alpha_stddev: document.visualizations[2].checked,
-                        alpha_stderr: document.visualizations[3].checked
-                      },
-                success: process_optimize});
+
+         $.getJSON($SCRIPT_ROOT + '/_subsample', {
+              study: document.getElementById('studycombobox')[document.getElementById('studycombobox').selectedIndex].value,
+              subjects: $("#subjectslider").slider("value"),
+              samples:  $("#sampleslider").slider("value"),
+              sequences: $("#sequenceslider").slider("value"),
+              iterations: $("#iterationslider").slider("value"),
+              demo: document.visualizations[0].checked,
+              pcoa: document.visualizations[1].checked,
+              alpha_stddev: document.visualizations[2].checked,
+              alpha_stderr: document.visualizations[3].checked
+         }, function(data) {
+             process_optimize()
+         });
     });
 });
 
 
 //function to build the frame with relevant plot
 function process_optimize() {
+      alert('hola')
       var checkedcnt = 0;
       
       //figure out how many frames need to be built
@@ -454,3 +458,4 @@ $(function() {
 		$("#iterationslider").slider("disable");
 		document.getElementById('iterations').innerHTML = $("#iterationslider").slider("value") +"/"+$("#iterationslider").slider('option','max');
 });
+
