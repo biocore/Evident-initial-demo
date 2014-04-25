@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 __author__ = "Antonio Gonzalez Pena"
 __copyright__ = "Copyright 2011-2012, Evident"
 __credits__ = ["Antonio Gonzalez Pena", "Yoshiki Vazquez Baeza"]
