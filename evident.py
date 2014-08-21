@@ -9,23 +9,35 @@ __maintainer__ = ["Antonio Gonzalez Pena"]
 __email__ = "antgonza@gmail.com"
 __status__ = "Development"
 
+# prevents runtime error with matplotlib, hence this statement must preceed
+# any interaction with that module to avoid unwanted results
+import os, tempfile, logging
+os.environ['MPLCONFIGDIR'] = tempfile.mkdtemp()
 
-from flask import Flask, render_template, session, request
-app = Flask(__name__, template_folder='www', static_folder='www')
-app.secret_key = 'evident_secret_key'
+from StringIO import StringIO
 
-from evident.parse import load_studies
-
+from flask import (Flask, render_template, request, make_response, session,
+                   url_for)
 from qiime.filter import filter_mapping_file
 from qiime.format import format_biom_table
-from qiime.parse import parse_mapping_file, parse_newick
-
+from qiime.parse import parse_mapping_file, parse_newick, parse_coords
+from qiime.make_rarefaction_plots import make_averages
 from biom.parse import parse_biom_table
 from biom.exception import TableException
 
-# from evident.error import raiseApacheError
+from evident.demo import demo
 from evident.subsampling import select_samples
-from evident.rarefaction import generate_alpha_rarefaction_data_from_point_in_omega
+from evident.rarefaction import (build_color_preferences,
+    generate_alpha_rarefaction_data_from_point_in_omega)
+from evident.pcoa import (generate_pcoa_cloud_from_point_in_omega,
+                          make_pcoa_plot)
+from evident.parse import load_studies
+from evident.session import SqliteSessionInterface
+
+
+# set up the Evident application
+app = Flask(__name__, template_folder='www', static_folder='www')
+
 
 @app.route('/')
 def init():
@@ -80,6 +92,7 @@ def subsample():
         try:
             # select only samples that meet ther criteria
             chosen_samples, filtered_biom_table = select_samples(map_data, headers, biom_table, session['sequences'], study['subject_column'], subjects, samples)
+
             # check if we have enough samples to display a PCoA plot
             if len(chosen_samples) < 3:
                 raise ValueError('<b>At least <u>three</u> data-points are needed: try changing the values of Subjects or Samples per Subject.</b>')
@@ -109,6 +122,98 @@ def subsample():
 
     return session['demo']
 
+@app.route('/_results')
+def results():
+    max_iterations = 10
+    min_sequences  = 10
+
+    # Reading / parsing some values
+    iterations = session['iterations']
+    print session['pcoa'], session['alpha_stderr'], session['alpha_stddev']
+    viz = request.args.get('viz', None, type=str)
+
+    # Validating that number of iterations
+    if max_iterations<iterations:
+        raise ValueError('<b>Sorry we can not process more than %s iterations.</b>' % (max_iterations))
+
+    # Creating full paths to files
+    mapping_fp = 'data/' + session['filename'] + '_map.txt'
+    pcoa_fp = 'data/' + session['filename'] + '_unweighted_unifrac_pc.txt'
+    alpha_stddev_fp = 'data/' + session['filename'] + '_alpha_stddev.html'
+    alpha_stderr_fp = 'data/' + session['filename'] + '_alpha_stderr.html'
+
+    # not demo, live user interaction
+    if session['demo']!="true":
+
+        # the gg tree is only loaded if it wasn't loaded in lib.psp
+        if session['tree_object'] == None:
+            tree_fp = 'data/gg_97_otus_4feb2011.tre'
+            tree_object = parse_newick(open(tree_fp))
+        else:
+            tree_object = session['tree_object']
+
+        mapping_file_tuple = session['mapping_file_tuple']
+        filtered_biom_table = parse_biom_table(StringIO(session['filtered_biom_table']))
+
+        # principal coordinates analysis plots
+        if viz=='pcoa':
+            # try:
+            webgl_string = generate_pcoa_cloud_from_point_in_omega(
+                    map_headers=mapping_file_tuple[1],
+                    map_data=mapping_file_tuple[0],
+                    biom_object=filtered_biom_table, metric='unifrac',
+                    sequences=session['sequences'], iterations=iterations, axes=3,
+                    tree_object=tree_object)
+            location =  url_for('static', filename='emperor_required_resources')
+            return (webgl_string).replace('emperor_required_resources', location)
+
+        # alpha rarefaction plots
+        elif viz=='alpha_stddev' or viz=='alpha_stderr':
+            min_depth = 10
+            if session['sequences']==min_depth:
+                raise ValueError('The min number of sequences for alpha diversity is 15, so you need to select at least this number')
+
+            # create all the coloring data for the alpha rarefaction plots
+            prefs, data, background_color, label_color = build_color_preferences(
+                mapping_file_tuple)
+
+            # make the rarefaction plots and rander the results on screen
+            html_string = make_averages(prefs, data, background_color, label_color,
+                session['alpha_rarefaction_data'], 'dummy_fp', 75, 'png', None,
+                False, viz[6:], 'memory')
+            return (html_string)
+
+        else:
+            raise ValueError('Visualization <u>%s</u> does not exist' % viz)
+
+    # demos
+    else:
+        # principal coordinates analysis plots
+        if viz=='pcoa':
+            map_data, map_headers, comments = parse_mapping_file(open(mapping_fp,'U'))
+            pcoa_headers, pcoa_values, eigenvalues, coords_pct = parse_coords(open(pcoa_fp,'U'))
+
+            webgl_string = make_pcoa_plot(pcoa_headers, pcoa_values, eigenvalues, coords_pct,
+                map_headers, map_data)
+
+            # to link to local resources and avoid forcing internet access
+            location =  url_for('static', filename='emperor_required_resources')
+            return webgl_string.replace('emperor_required_resources', location)
+
+        # alpha rarefaction plots
+        elif viz=='alpha_stddev' or viz=='alpha_stderr':
+            if viz == 'alpha_stddev':
+                html_string = '\n'.join(open(alpha_stddev_fp,'U').readlines())
+            elif viz == 'alpha_stderr':
+                html_string = '\n'.join(open(alpha_stderr_fp,'U').readlines())
+
+            return (html_string)
+        else:
+            raise ValueError('Visualization <u>%s</u> does not exist' % viz)
+
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Starting sessions
+    # You can change the session storage to wherever you want
+    app.session_interface = SqliteSessionInterface('/tmp/evident/')
+    app.run(debug=True, port=8888)
