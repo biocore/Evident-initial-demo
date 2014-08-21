@@ -225,7 +225,7 @@ $(function(){
         for(var i = 0; i < len; i++)
             $("#tabs").tabs("remove",0);
         
-        var loadinghtml = '<div><img id="loading" class="loading" src="www/img/loading.gif"></div>'
+        var loadinghtml = '<div><img id="loading" class="loading" src="/www/img/loading.gif"></div>'
 
         addTab('Loading','loading',loadinghtml);
 
@@ -248,7 +248,6 @@ $(function(){
 
 //function to build the frame with relevant plot
 function process_optimize() {
-      alert('hola')
       var checkedcnt = 0;
       
       //figure out how many frames need to be built
@@ -274,14 +273,9 @@ function process_optimize() {
             //if current vis box is checked then build a frame for it
             if(document.visualizations[i].checked)
             {
-                content += "<div><img id=\"loading\" class=\"loading\" src=\"./img/loading.gif\"></div>";
-                content += "<iframe src=\"handler.psp?";
-                content += "viz="+document.visualizations[i].name;
-                content += "&iterations="+$("#iterationslider").slider("value");
-                content += "&column=";
-                for(var j = 0; j < validColumns.length; j++)
-                   content += validColumns[j]+',';
-                content = content.slice(0,-1)
+                content += "<div><img id=\"loading\" class=\"loading\" src=\"/www/img/loading.gif\"></div>";
+                content += "<iframe src=\"_results";
+                content += "?viz="+document.visualizations[i].name;
                 content += "\" onLoad=\"loaded()\" onabort=\"loaded()\"></iframe>";
                 //add a tab with this frame in it 
                 addTab(document.visualizations[i].name,document.visualizations[i].value,content);
@@ -295,7 +289,9 @@ function process_optimize() {
              .addClass("ui-corner-bottom viz");
         });
         document.getElementById('optimize').disabled = true;  
-    }
+
+       return;
+}
 
 
 //jquery to activate sample slider
