@@ -11,7 +11,7 @@ before_install:
   - export PATH=/home/travis/miniconda3/bin:$PATH
 install:
   - wget https://data.qiime2.org/distro/core/qiime2-2018.6-py35-linux-conda.yml
-  - conda env create -n qiime2-2018.6 --file qiime2-2018.6-py35-linux-conda.yml
+  - travis_retry conda env create -n qiime2-2018.6 -q --file qiime2-2017.12-py35-linux-conda.yml
   - rm qiime2-2018.6-py35-linux-conda.yml
 script:
   - nosetests
