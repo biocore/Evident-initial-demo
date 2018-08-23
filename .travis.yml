@@ -4,6 +4,11 @@ sudo: false
 env:
   global:
     - PYTHON_VERSION=3.5
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda3-4.3.31-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/miniconda3/bin:$PATH
 install:
   - wget https://data.qiime2.org/distro/core/qiime2-2018.6-py35-linux-conda.yml
   - conda env create -n qiime2-2018.6 --file qiime2-2018.6-py35-linux-conda.yml
